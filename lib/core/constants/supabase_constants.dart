@@ -1,0 +1,71 @@
+// lib/core/constants/supabase_constants.dart
+//
+// Central place for ALL Supabase table names, storage bucket names,
+// Edge Function names, and app-wide constants.
+// Never type table names as raw strings in repositories — always use these.
+
+class SupabaseConstants {
+  SupabaseConstants._();
+
+  // ── Supabase project credentials ──────────────────────────────────────────
+  // Injected at build time from .env.json via --dart-define-from-file=.env.json
+  // Never hardcode these values here — edit .env.json instead.
+  static const String supabaseUrl = String.fromEnvironment('SUPABASE_URL');
+  static const String supabaseAnonKey = String.fromEnvironment('SUPABASE_ANON_KEY');
+
+  // ── Table names ───────────────────────────────────────────────────────────
+  static const String usersTable = 'users';
+  static const String regionAdminsTable = 'region_admins';
+  static const String superAdminsTable = 'super_admins';
+  static const String auctionsTable = 'auctions';
+  static const String bidsTable = 'bids';
+  static const String feedbackTable = 'feedback';
+  static const String districtsTable = 'districts';
+  static const String appSettingsTable = 'app_settings';
+  static const String notificationsTable = 'notifications';
+
+  // ── Storage bucket names ──────────────────────────────────────────────────
+  static const String auctionPhotosBucket = 'auction-photos';
+  static const String profilePhotosBucket = 'profile-photos';
+  static const String nationalIdsBucket = 'national-ids';
+  static const String reportsBucket = 'reports';
+
+  // ── Edge Function names ───────────────────────────────────────────────────
+  static const String fnPlaceBid = 'place-bid';
+  static const String fnCreateAdmin = 'create-admin';
+  static const String fnCloseAuctionManually = 'close-auction-manually';
+  static const String fnSendAuctionNotification = 'send-auction-notification';
+  static const String fnGetUserStats = 'get-user-stats';
+  static const String fnGenerateReport = 'generate-report';
+  static const String fnSuspendUser = 'suspend-user';
+  static const String fnActivateUser = 'activate-user';
+  static const String fnRegisterClient = 'register-client';
+  static const String fnResetClientPassword = 'reset-client-password';
+
+  // ── OneSignal (push notifications) ───────────────────────────────────────
+  // Injected at build time from .env.json via --dart-define-from-file=.env.json
+  static const String oneSignalAppId = String.fromEnvironment('ONESIGNAL_APP_ID');
+
+  // ── Roles ─────────────────────────────────────────────────────────────────
+  static const String roleClient = 'client';
+  static const String roleRegionAdmin = 'region_admin';
+  static const String roleSuperAdmin = 'super_admin';
+
+  // ── RNP Regions ───────────────────────────────────────────────────────────
+  static const List<String> regions = [
+    'Eastern',
+    'Western',
+    'Northern',
+    'Southern',
+    'Central',
+  ];
+
+  // ── Item categories ───────────────────────────────────────────────────────
+  static const List<String> categories = ['car', 'motorcycle', 'bicycle'];
+
+  // ── Auction statuses ──────────────────────────────────────────────────────
+  static const String statusDraft = 'draft';
+  static const String statusActive = 'active';
+  static const String statusClosed = 'closed';
+  static const String statusCancelled = 'cancelled';
+}
