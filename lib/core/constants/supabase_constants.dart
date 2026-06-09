@@ -61,7 +61,7 @@ class SupabaseConstants {
   ];
 
   // ── Item categories ───────────────────────────────────────────────────────
-  static const List<String> categories = ['car', 'motorcycle', 'bicycle'];
+  static const List<String> categories = ['vehicle', 'motorcycle', 'bicycle'];
 
   // ── Auction statuses ──────────────────────────────────────────────────────
   static const String statusDraft = 'draft';
