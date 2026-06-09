@@ -141,6 +141,7 @@ class _AddAdminScreenState extends ConsumerState<AddAdminScreen> {
       if (mounted) context.go(AppRoutes.manageAdmins);
     } catch (e) {
       setState(() => _isLoading = false);
+      if (!mounted) return;
       _snack(context.l10n.creationFailed(e.toString()), error: true);
     }
   }

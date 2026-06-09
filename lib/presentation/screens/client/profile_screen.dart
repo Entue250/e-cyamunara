@@ -995,33 +995,6 @@ class _InfoItem extends StatelessWidget {
       );
 }
 
-class _PrefItem extends StatelessWidget {
-  const _PrefItem(this.icon, this.label, this.value);
-  final IconData icon;
-  final String label, value;
-
-  @override
-  Widget build(BuildContext context) => Container(
-        margin: const EdgeInsets.only(bottom: 8),
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
-        decoration: BoxDecoration(
-          color: AppColors.surface,
-          borderRadius: BorderRadius.circular(AppRadius.md),
-          border: Border.all(color: AppColors.border),
-        ),
-        child: Row(
-          children: [
-            Icon(icon, size: 18, color: AppColors.textSecondary),
-            const SizedBox(width: 12),
-            Expanded(child: Text(label, style: AppTextStyles.bodyLarge)),
-            if (value.isNotEmpty) Text(value, style: AppTextStyles.bodyMedium),
-            const Icon(Icons.chevron_right,
-                color: AppColors.textSecondary, size: 20),
-          ],
-        ),
-      );
-}
-
 class _TapPrefItem extends StatelessWidget {
   const _TapPrefItem(this.icon, this.label, this.value,
       {required this.onTap});
