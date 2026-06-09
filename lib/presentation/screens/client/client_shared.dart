@@ -108,9 +108,9 @@ class AuctionCard extends StatelessWidget {
                           width: double.infinity,
                           fit: BoxFit.cover,
                           errorBuilder: (_, _, _) =>
-                              AuctionPhotoPlaceholder(auction.category),
+                              AuctionPhotoPlaceholder(auction.resolvedMainCategory),
                         )
-                      : AuctionPhotoPlaceholder(auction.category),
+                      : AuctionPhotoPlaceholder(auction.resolvedMainCategory),
                 ),
                 // Category badge
                 Positioned(
@@ -478,11 +478,11 @@ class _ThumbnailPlaceholder extends StatelessWidget {
         height: 72,
         color: AppColors.surfaceGrey,
         child: Icon(
-          category == 'car'
-              ? Icons.directions_car
-              : category == 'motorcycle'
-                  ? Icons.motorcycle
-                  : Icons.pedal_bike,
+          switch (category) {
+            'motorcycle' => Icons.motorcycle,
+            'bicycle'    => Icons.pedal_bike,
+            _            => Icons.directions_car,
+          },
           color: AppColors.border,
           size: 32,
         ),
