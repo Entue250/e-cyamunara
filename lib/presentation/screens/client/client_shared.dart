@@ -116,7 +116,7 @@ class AuctionCard extends StatelessWidget {
                 Positioned(
                   top: 12,
                   right: 12,
-                  child: _Badge(auction.category.toUpperCase()),
+                  child: _Badge(auction.resolvedMainCategory.toUpperCase()),
                 ),
                 // Region badge
                 Positioned(
@@ -249,11 +249,11 @@ class AuctionPhotoPlaceholder extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(
-              category == 'car'
-                  ? Icons.directions_car
-                  : category == 'motorcycle'
-                      ? Icons.motorcycle
-                      : Icons.pedal_bike,
+              switch (category) {
+                'motorcycle' => Icons.motorcycle,
+                'bicycle'    => Icons.pedal_bike,
+                _            => Icons.directions_car,
+              },
               size: 56,
               color: AppColors.border,
             ),
@@ -288,7 +288,7 @@ class BidTile extends StatelessWidget {
             ? auction!.photoUrls.first
             : null;
     final auctionName = auction?.itemName ?? 'Auction ${bid.auctionId.substring(0, 8)}';
-    final category = auction?.category ?? 'car';
+    final category = auction?.resolvedMainCategory ?? 'vehicle';
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
@@ -342,6 +342,31 @@ class BidTile extends StatelessWidget {
                       Text(auction!.region, style: AppTextStyles.bodySmall),
                     ],
                   ),
+                if (auction?.brand != null || auction?.subCategory != null) ...[
+                  const SizedBox(height: 4),
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.label_outline,
+                          size: 11, color: AppColors.darkGold),
+                      const SizedBox(width: 3),
+                      Flexible(
+                        child: Text(
+                          [
+                            if (auction!.brand != null) auction!.brand!,
+                            if (auction!.subCategory != null) auction!.subCategory!,
+                          ].join(' • '),
+                          style: const TextStyle(
+                            fontSize: 11,
+                            color: AppColors.darkGold,
+                            fontWeight: FontWeight.w700,
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
                 const SizedBox(height: 6),
                 Text(context.l10n.yourBidLabel,
                     style: AppTextStyles.bodySmall,
