@@ -237,3 +237,107 @@ class AppValidators {
     return null;
   }
 }
+
+// ════════════════════════════════════════════════════════════════════
+// AuctionValidators — category-aware validators for the ML-ready form
+// ════════════════════════════════════════════════════════════════════
+class AuctionValidators {
+  AuctionValidators._();
+
+  static final int _currentYear = DateTime.now().year;
+
+  static String? validateYear(int? year, AppLocalizations l10n) {
+    if (year == null) return l10n.validatorYearRequired;
+    if (year < 1900 || year > _currentYear) {
+      return l10n.validatorYearRange(_currentYear);
+    }
+    return null;
+  }
+
+  static String? validateMileage(
+      String? value, String mainCategory, AppLocalizations l10n) {
+    if (mainCategory == 'bicycle') return null;
+    if (value == null || value.trim().isEmpty) return l10n.validatorMileageRequired;
+    final v = int.tryParse(value.trim());
+    if (v == null) return l10n.validatorMileageRequired;
+    if (v < 0) return l10n.validatorMileageNegative;
+    return null;
+  }
+
+  static String? validateEngineCc(
+      String? value, String mainCategory, AppLocalizations l10n) {
+    if (mainCategory != 'motorcycle') return null;
+    if (value == null || value.trim().isEmpty) return l10n.validatorEngineCcRequired;
+    final v = int.tryParse(value.trim());
+    if (v == null || v <= 0) return l10n.validatorEngineCcRequired;
+    return null;
+  }
+
+  static String? validateEngineSize(
+      String? value, String mainCategory, AppLocalizations l10n) {
+    if (mainCategory != 'vehicle') return null;
+    if (value == null || value.trim().isEmpty) return l10n.validatorEngineSizeRequired;
+    final v = double.tryParse(value.trim());
+    if (v == null || v <= 0) return l10n.validatorEngineSizeRequired;
+    return null;
+  }
+
+  static String? validateTransmission(
+      String? value, String mainCategory, AppLocalizations l10n) {
+    if (mainCategory != 'vehicle') return null;
+    if (value == null || value.trim().isEmpty) return l10n.validatorTransmissionRequired;
+    return null;
+  }
+
+  static String? validateGearCount(
+      String? value, String mainCategory, AppLocalizations l10n) {
+    if (mainCategory != 'bicycle') return null;
+    if (value == null || value.trim().isEmpty) return l10n.validatorGearCountRequired;
+    final v = int.tryParse(value.trim());
+    if (v == null || v <= 0) return l10n.validatorGearCountRequired;
+    return null;
+  }
+
+  static String? validateFuelType(
+      String? value, String mainCategory, AppLocalizations l10n) {
+    if (mainCategory == 'bicycle') return null;
+    if (value == null || value.trim().isEmpty) return l10n.validatorFuelTypeRequired;
+    return null;
+  }
+
+  static String? validateRequired(String? value, String errorMessage) {
+    if (value == null || value.trim().isEmpty) return errorMessage;
+    return null;
+  }
+
+  static String? validateRequiredDropdown(String? value, String errorMessage) {
+    if (value == null) return errorMessage;
+    return null;
+  }
+
+  // Non-localized versions for unit testing
+  static String? validateYearRaw(int? year) {
+    if (year == null) return 'Year required';
+    if (year < 1900 || year > DateTime.now().year) {
+      return 'Year out of range';
+    }
+    return null;
+  }
+
+  static String? validateMileageRaw(String? value, String mainCategory) {
+    if (mainCategory == 'bicycle') return null;
+    if (value == null || value.trim().isEmpty) return 'Mileage required';
+    final v = int.tryParse(value.trim());
+    if (v == null) return 'Invalid mileage';
+    if (v < 0) return 'Mileage cannot be negative';
+    return null;
+  }
+
+  static String? validateEngineCcRaw(String? value, String mainCategory) {
+    if (mainCategory != 'motorcycle') return null;
+    if (value == null || value.trim().isEmpty) return 'Engine CC required';
+    final v = int.tryParse(value.trim());
+    if (v == null || v <= 0) return 'Engine CC must be positive';
+    return null;
+  }
+}
