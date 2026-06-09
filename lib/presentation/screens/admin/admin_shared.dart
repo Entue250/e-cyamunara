@@ -281,7 +281,14 @@ class RecentAuctionCard extends StatelessWidget {
         width: 64,
         height: 64,
         color: AppColors.surfaceGrey,
-        child: const Icon(Icons.directions_car, color: AppColors.border),
+        child: Icon(
+          switch (auction.resolvedMainCategory) {
+            'motorcycle' => Icons.motorcycle_outlined,
+            'bicycle'    => Icons.pedal_bike_outlined,
+            _            => Icons.directions_car_outlined,
+          },
+          color: AppColors.border,
+        ),
       );
 }
 
@@ -380,6 +387,33 @@ class ManageAuctionCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 4),
                 Text(auction.itemName, style: AppTextStyles.h2),
+                if (auction.brand != null || auction.subCategory != null) ...[
+                  const SizedBox(height: 4),
+                  Row(
+                    children: [
+                      Icon(
+                        _categoryIcon(auction.resolvedMainCategory),
+                        size: 12,
+                        color: AppColors.textSecondary,
+                      ),
+                      const SizedBox(width: 4),
+                      Flexible(
+                        child: Text(
+                          [
+                            if (auction.brand != null) auction.brand!,
+                            if (auction.subCategory != null) auction.subCategory!,
+                          ].join(' • '),
+                          style: const TextStyle(
+                            fontSize: 11,
+                            color: AppColors.textSecondary,
+                            fontWeight: FontWeight.w600,
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
                 const SizedBox(height: 4),
                 Text(
                   auction.description,
@@ -494,10 +528,20 @@ class ManageAuctionCard extends StatelessWidget {
   Widget _auctionPhotoPlaceholder() => Container(
         height: 150,
         color: AppColors.surfaceGrey,
-        child: const Center(
-          child: Icon(Icons.directions_car, size: 56, color: AppColors.border),
+        child: Center(
+          child: Icon(
+            _categoryIcon(auction.resolvedMainCategory),
+            size: 56,
+            color: AppColors.border,
+          ),
         ),
       );
+
+  IconData _categoryIcon(String category) => switch (category) {
+    'motorcycle' => Icons.motorcycle_outlined,
+    'bicycle'    => Icons.pedal_bike_outlined,
+    _            => Icons.directions_car_outlined,
+  };
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
