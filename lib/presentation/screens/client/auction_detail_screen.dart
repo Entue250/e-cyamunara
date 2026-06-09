@@ -152,10 +152,10 @@ class _AuctionDetailScreenState extends ConsumerState<AuctionDetailScreen> {
                                 photos[i],
                                 fit: BoxFit.cover,
                                 errorBuilder: (_, _, _) =>
-                                    _PhotoError(auction.category),
+                                    _PhotoError(auction),
                               ),
                             )
-                          : _PhotoError(auction.category),
+                          : _PhotoError(auction),
 
                       // Category badge
                       Positioned(
@@ -173,17 +173,17 @@ class _AuctionDetailScreenState extends ConsumerState<AuctionDetailScreen> {
                             mainAxisSize: MainAxisSize.min,
                             children: [
                               Icon(
-                                auction.category == 'car'
-                                    ? Icons.directions_car
-                                    : auction.category == 'motorcycle'
-                                        ? Icons.motorcycle
-                                        : Icons.pedal_bike,
+                                switch (auction.resolvedMainCategory) {
+                                  'motorcycle' => Icons.motorcycle,
+                                  'bicycle'    => Icons.pedal_bike,
+                                  _            => Icons.directions_car,
+                                },
                                 size: 14,
                                 color: AppColors.primaryBlue,
                               ),
                               const SizedBox(width: 4),
                               Text(
-                                auction.category.toUpperCase(),
+                                auction.resolvedMainCategory.toUpperCase(),
                                 style: const TextStyle(
                                   fontSize: 11,
                                   fontWeight: FontWeight.w800,
@@ -270,24 +270,8 @@ class _AuctionDetailScreenState extends ConsumerState<AuctionDetailScreen> {
                       Text(auction.itemName, style: AppTextStyles.displayLarge),
                       const SizedBox(height: 16),
 
-                      // ── Specs grid ─────────────────────────────────────────
-                      GridView.count(
-                        shrinkWrap: true,
-                        physics: const NeverScrollableScrollPhysics(),
-                        crossAxisCount: 2,
-                        mainAxisSpacing: 10,
-                        crossAxisSpacing: 10,
-                        childAspectRatio: 2.5,
-                        children: [
-                          _SpecCard(context.l10n.conditionLabel, auction.condition),
-                          _SpecCard(context.l10n.plateNumberLabel, auction.plateNumber),
-                          _SpecCard(context.l10n.startDate,
-                              DateHelper.formatDate(auction.startDate)),
-                          _SpecCard(context.l10n.endDate,
-                              DateHelper.formatDate(auction.endDate)),
-                        ],
-                      ),
-
+                      const SizedBox(height: 16),
+                      _SpecsTable(auction: auction),
                       const SizedBox(height: 16),
 
                       // ── Bid stats box ──────────────────────────────────────
@@ -515,23 +499,6 @@ class _AuctionDetailScreenState extends ConsumerState<AuctionDetailScreen> {
                         ),
                       ),
 
-                      const SizedBox(height: 24),
-
-                      Text(context.l10n.vehicleSpecs, style: AppTextStyles.h1),
-                      const SizedBox(height: 12),
-                      _SpecRow(Icons.description_outlined, context.l10n.description,
-                          auction.description),
-                      _SpecRow(Icons.local_offer_outlined, context.l10n.category,
-                          AppFormatters.titleCase(auction.category)),
-                      _SpecRow(Icons.star_outline, context.l10n.condition,
-                          auction.condition),
-                      _SpecRow(
-                          Icons.confirmation_number_outlined,
-                          context.l10n.plateNumber,
-                          auction.plateNumber),
-                      _SpecRow(Icons.person_outline, context.l10n.postedBy,
-                          auction.postedByAdminName),
-
                       const SizedBox(height: 32),
                     ],
                   ),
@@ -550,101 +517,24 @@ class _AuctionDetailScreenState extends ConsumerState<AuctionDetailScreen> {
 // ─────────────────────────────────────────────────────────────────────────────
 
 class _PhotoError extends StatelessWidget {
-  const _PhotoError(this.category);
-  final String category;
+  const _PhotoError(this.auction);
+  final AuctionModel auction;
 
   @override
   Widget build(BuildContext context) => Container(
         color: AppColors.surfaceGrey,
         child: Icon(
-          category == 'car'
-              ? Icons.directions_car
-              : category == 'motorcycle'
-                  ? Icons.motorcycle
-                  : Icons.pedal_bike,
+          switch (auction.resolvedMainCategory) {
+            'motorcycle' => Icons.motorcycle,
+            'bicycle'    => Icons.pedal_bike,
+            _            => Icons.directions_car,
+          },
           size: 80,
           color: AppColors.border,
         ),
       );
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Spec grid card
-// ─────────────────────────────────────────────────────────────────────────────
-
-class _SpecCard extends StatelessWidget {
-  const _SpecCard(this.label, this.value);
-  final String label, value;
-
-  @override
-  Widget build(BuildContext context) => Container(
-        padding: const EdgeInsets.all(10),
-        decoration: BoxDecoration(
-          color: AppColors.surface,
-          borderRadius: BorderRadius.circular(AppRadius.md),
-          border: Border.all(color: AppColors.border),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text(
-              label,
-              style: const TextStyle(
-                fontSize: 9,
-                fontWeight: FontWeight.w700,
-                color: AppColors.textSecondary,
-                letterSpacing: 0.8,
-              ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              value,
-              style: const TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w700,
-                color: AppColors.textPrimary,
-              ),
-            ),
-          ],
-        ),
-      );
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Spec list row
-// ─────────────────────────────────────────────────────────────────────────────
-
-class _SpecRow extends StatelessWidget {
-  const _SpecRow(this.icon, this.label, this.value);
-  final IconData icon;
-  final String label, value;
-
-  @override
-  Widget build(BuildContext context) => Padding(
-        padding: const EdgeInsets.symmetric(vertical: 10),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Icon(icon, size: 18, color: AppColors.textSecondary),
-            const SizedBox(width: 12),
-            Expanded(child: Text(label, style: AppTextStyles.bodyMedium)),
-            const SizedBox(width: 8),
-            Flexible(
-              child: Text(
-                value,
-                textAlign: TextAlign.end,
-                style: const TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.textPrimary,
-                ),
-              ),
-            ),
-          ],
-        ),
-      );
-}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Bid placement / update bottom sheet
@@ -855,5 +745,164 @@ class _InfoRow extends StatelessWidget {
             ),
           ),
         ],
+      );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Full specs table — renders only non-null fields grouped by category
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _SpecsTable extends StatelessWidget {
+  const _SpecsTable({required this.auction});
+  final AuctionModel auction;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = context.l10n;
+    final cat  = auction.resolvedMainCategory;
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(AppRadius.lg),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(l10n.vehicleSpecs, style: AppTextStyles.h1),
+          const SizedBox(height: 12),
+
+          // Identity
+          if (auction.brand != null)
+            _SpecsRow(Icons.local_offer_outlined, l10n.brandLabel, auction.brand!),
+          if (auction.model != null)
+            _SpecsRow(Icons.confirmation_number_outlined, l10n.modelField, auction.model!),
+          if (auction.manufacturingYear != null)
+            _SpecsRow(Icons.calendar_today_outlined, l10n.manufacturingYearLabel,
+                auction.manufacturingYear.toString()),
+          if (auction.subCategory != null)
+            _SpecsRow(Icons.category_outlined, l10n.subCategoryLabel, auction.subCategory!),
+          if (auction.color != null)
+            _SpecsRow(Icons.palette_outlined, l10n.colorField, auction.color!),
+
+          const Divider(height: 24, color: AppColors.border),
+
+          // Condition & usage
+          _SpecsRow(Icons.star_outline, l10n.conditionLabel, auction.condition),
+          if (auction.mileage != null && cat != 'bicycle')
+            _SpecsRow(Icons.speed_outlined, l10n.mileageField,
+                '${auction.mileage} km'),
+          if (auction.plateNumber.isNotEmpty && cat != 'bicycle')
+            _SpecsRow(Icons.badge_outlined, l10n.plateNumberLabel, auction.plateNumber),
+
+          const Divider(height: 24, color: AppColors.border),
+
+          // Technical (category-specific)
+          if (cat == 'vehicle') ...[
+            if (auction.fuelType != null)
+              _SpecsRow(Icons.local_gas_station_outlined, l10n.fuelTypeField,
+                  auction.fuelType!),
+            if (auction.transmission != null)
+              _SpecsRow(Icons.settings_outlined, l10n.transmissionField,
+                  auction.transmission!),
+            if (auction.engineSize != null)
+              _SpecsRow(Icons.engineering_outlined, l10n.engineSizeField,
+                  '${auction.engineSize}L'),
+            if (auction.drivetrain != null)
+              _SpecsRow(Icons.rotate_right_outlined, l10n.drivetrainField,
+                  auction.drivetrain!),
+            if (auction.seatingCapacity != null)
+              _SpecsRow(Icons.airline_seat_recline_normal_outlined,
+                  l10n.seatingCapacityField,
+                  '${auction.seatingCapacity} seats'),
+          ],
+
+          if (cat == 'motorcycle') ...[
+            if (auction.fuelType != null)
+              _SpecsRow(Icons.local_gas_station_outlined, l10n.fuelTypeField,
+                  auction.fuelType!),
+            if (auction.engineCc != null)
+              _SpecsRow(Icons.engineering_outlined, l10n.engineCcField,
+                  '${auction.engineCc} cc'),
+          ],
+
+          if (cat == 'bicycle') ...[
+            if (auction.frameMaterial != null)
+              _SpecsRow(Icons.build_outlined, l10n.frameMaterialField,
+                  auction.frameMaterial!),
+            if (auction.gearCount != null)
+              _SpecsRow(Icons.settings_outlined, l10n.gearCountField,
+                  '${auction.gearCount} gears'),
+            if (auction.suspensionType != null)
+              _SpecsRow(Icons.merge_outlined, l10n.suspensionTypeField,
+                  auction.suspensionType!),
+            if (auction.brakeType != null)
+              _SpecsRow(Icons.stop_circle_outlined, l10n.brakeTypeField,
+                  auction.brakeType!),
+          ],
+
+          const Divider(height: 24, color: AppColors.border),
+
+          // History
+          if (auction.ownershipHistory != null)
+            _SpecsRow(Icons.person_outline, l10n.ownershipHistoryField,
+                auction.ownershipHistory!),
+          if (auction.accidentHistory != null)
+            _SpecsRow(Icons.warning_amber_outlined, l10n.accidentHistoryField,
+                auction.accidentHistory!),
+          if (auction.insuranceStatus != null)
+            _SpecsRow(Icons.security_outlined, l10n.insuranceStatusField,
+                auction.insuranceStatus!),
+
+          const Divider(height: 24, color: AppColors.border),
+
+          // Auction metadata
+          _SpecsRow(Icons.description_outlined, l10n.description, auction.description),
+          _SpecsRow(Icons.location_on_outlined, l10n.region, auction.region),
+          _SpecsRow(Icons.person_outline, l10n.postedBy, auction.postedByAdminName),
+          _SpecsRow(Icons.event_outlined, l10n.startDate,
+              DateHelper.formatDate(auction.startDate)),
+          _SpecsRow(Icons.event_available_outlined, l10n.endDate,
+              DateHelper.formatDate(auction.endDate)),
+        ],
+      ),
+    );
+  }
+}
+
+// ── Specs row ─────────────────────────────────────────────────────────────────
+
+class _SpecsRow extends StatelessWidget {
+  const _SpecsRow(this.icon, this.label, this.value);
+  final IconData icon;
+  final String label, value;
+
+  @override
+  Widget build(BuildContext context) => Padding(
+        padding: const EdgeInsets.symmetric(vertical: 8),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Icon(icon, size: 16, color: AppColors.textSecondary),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(label, style: AppTextStyles.bodyMedium),
+            ),
+            const SizedBox(width: 8),
+            Flexible(
+              child: Text(
+                value,
+                textAlign: TextAlign.end,
+                style: const TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.textPrimary,
+                ),
+              ),
+            ),
+          ],
+        ),
       );
 }
