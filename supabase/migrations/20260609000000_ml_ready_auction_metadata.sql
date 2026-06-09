@@ -24,8 +24,15 @@ ALTER TABLE auctions
   ADD COLUMN IF NOT EXISTS accident_history   TEXT,
   ADD COLUMN IF NOT EXISTS insurance_status   TEXT;
 
--- Rename legacy 'car' category to 'vehicle'
+-- Drop the old category check constraint (whitelisted 'car'), rename to 'vehicle',
+-- then recreate the constraint with the updated allowed values.
+ALTER TABLE auctions DROP CONSTRAINT IF EXISTS auctions_category_check;
+
 UPDATE auctions SET category = 'vehicle' WHERE category = 'car';
+
+ALTER TABLE auctions
+  ADD CONSTRAINT auctions_category_check
+  CHECK (category IN ('vehicle', 'motorcycle', 'bicycle'));
 
 -- Backfill main_category from the existing category column
 UPDATE auctions SET main_category = category WHERE main_category IS NULL;
