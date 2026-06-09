@@ -175,7 +175,7 @@ Selecting a `main_category` chip resets `sub_category` and `brand` to null and r
 
 ### 6.4 Edit Mode
 
-Edit mode pre-populates all new fields from `widget.auction`. Category chips are editable in edit mode (admin may correct a category). All existing edit-mode behaviour (photo read-only strip, `updateAuctionUseCaseProvider`) is preserved.
+Edit mode pre-populates all new fields from `widget.auction`. Category chips are editable in edit mode (admin may correct a category). When `main_category` changes in edit mode, all category-specific fields (`sub_category`, `brand`, `fuel_type`, `transmission`, `engine_size`, `engine_cc`, `drivetrain`, `seating_capacity`, `frame_material`, `gear_count`, `suspension_type`, `brake_type`) are reset to null and their controllers cleared — this prevents stale motorcycle data from being saved on a vehicle record. All existing edit-mode behaviour (photo read-only strip, `updateAuctionUseCaseProvider`) is preserved.
 
 ---
 
@@ -241,6 +241,8 @@ Edit mode pre-populates all new fields from `widget.auction`. Category chips are
 
 New keys added for all new field labels, dropdown option labels, section headers, and validation messages. Both EN and RW provided for every key.
 
+**Storage strategy:** Dropdown option values are stored in the DB as fixed English strings (e.g. `'Petrol'`, `'Automatic'`, `'Mountain Bike'`). This ensures ML training data is consistent regardless of the user's display language. The UI maps each stored English value to a localized display label via l10n. Field labels and section headers are always localized.
+
 **Examples:**
 ```
 mainCategory, subCategory, brand, model, manufacturingYear, color, mileage,
@@ -249,7 +251,13 @@ frameMaterial, gearCount, suspensionType, brakeType, ownershipHistory,
 accidentHistory, insuranceStatus, basicInformation, technicalSpecs,
 ownershipHistory, vehicleSectionLabel, motorcycleSectionLabel, bicycleSectionLabel,
 validatorYearRange, validatorMileageNegative, validatorEngineCcRequired,
-validatorTransmissionRequired, validatorGearCountRequired
+validatorTransmissionRequired, validatorGearCountRequired,
+optionPetrol, optionDiesel, optionHybrid, optionElectric,
+optionAutomatic, optionManual, optionCvt, optionFwd, optionRwd, optionAwd, option4wd,
+optionExcellent, optionVeryGood, optionGood, optionFair, optionPoor,
+optionFirstOwner, optionSecondOwner, optionThirdOwner, optionFleetVehicle,
+optionInsured, optionExpired, optionNeverInsured, optionUnknown,
+optionNoAccidents, optionMinorDamage, optionMajorDamage
 ```
 
 ---
