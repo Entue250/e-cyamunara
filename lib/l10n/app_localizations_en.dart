@@ -1690,4 +1690,24 @@ class AppLocalizationsEn extends AppLocalizations {
   String brandSubcategoryChip(String brand, String subcategory) {
     return '$brand • $subcategory';
   }
+
+  @override
+  String get publishDraft => 'Publish Auction';
+
+  @override
+  String get publish => 'PUBLISH';
+
+  @override
+  String get publishTooltip => 'Publish Draft';
+
+  @override
+  String publishConfirmMessage(String name, String id) {
+    return 'Publish "$name" (LOT #$id)?\n\nThis will make the auction live and visible to all clients. Bidding will begin immediately.';
+  }
+
+  @override
+  String get auctionPublished => 'Auction published successfully!';
+
+  @override
+  String get auctionSoftDeleted => 'Auction removed from listings (bid history preserved).';
 }

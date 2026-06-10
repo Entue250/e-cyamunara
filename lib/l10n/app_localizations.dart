@@ -3253,6 +3253,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{brand} • {subcategory}'**
   String brandSubcategoryChip(String brand, String subcategory);
+
+  /// No description provided for @publishDraft.
+  String get publishDraft;
+
+  /// No description provided for @publish.
+  String get publish;
+
+  /// No description provided for @publishTooltip.
+  String get publishTooltip;
+
+  /// No description provided for @publishConfirmMessage.
+  String publishConfirmMessage(String name, String id);
+
+  /// No description provided for @auctionPublished.
+  String get auctionPublished;
+
+  /// No description provided for @auctionSoftDeleted.
+  String get auctionSoftDeleted;
 }
 
 class _AppLocalizationsDelegate
