@@ -153,6 +153,15 @@ serve(async (req) => {
         { type: 'system', auction_id: auction.id },
       );
     }
+
+    // Audit log
+    await supabase.from('auction_auto_close_logs').insert({
+      auction_id:  auction.id,
+      closed_at:   closedAt,
+      winner_uid:  winnerUid ?? null,
+      final_price: winningAmt ?? null,
+      status:      winnerUid ? 'winner_found' : 'no_bids',
+    });
   }
 
   return new Response(JSON.stringify({ closed: expired.length }), {
