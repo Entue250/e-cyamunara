@@ -13,6 +13,7 @@ import 'package:go_router/go_router.dart';
 import '../../providers/providers.dart';
 import '../../theme/app_theme.dart';
 import '../../app_router.dart';
+import '../../../core/constants/supabase_constants.dart';
 import '../../../core/localization/app_localizations_ext.dart';
 import 'admin_shared.dart';
 
@@ -28,6 +29,59 @@ class _ManageAuctionsScreenState extends ConsumerState<ManageAuctionsScreen> {
   String _searchQuery = '';
   int _filterIndex = 0;
   static const List<String> _statusKeys = ['', 'active', 'closed', 'draft'];
+
+  Future<void> _confirmPublish(AuctionModel auction, String adminUid) async {
+    final l10n = context.l10n;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: Text(l10n.publishDraft),
+        content: Text(
+          l10n.publishConfirmMessage(
+            auction.itemName,
+            auction.auctionId.substring(0, 6).toUpperCase(),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: Text(l10n.cancel),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: Text(
+              l10n.publish,
+              style: const TextStyle(
+                color: AppColors.success,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+
+    final failure =
+        await ref.read(publishDraftUseCaseProvider)(auction.auctionId);
+    if (!mounted) return;
+    if (failure != null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(failure.message),
+          backgroundColor: AppColors.error,
+        ),
+      );
+      return;
+    }
+    ref.invalidate(adminAuctionsProvider(adminUid));
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(context.l10n.auctionPublished),
+        backgroundColor: AppColors.success,
+      ),
+    );
+  }
 
   Future<void> _confirmDelete(AuctionModel auction, String adminUid) async {
     final l10n = context.l10n;
@@ -58,20 +112,26 @@ class _ManageAuctionsScreenState extends ConsumerState<ManageAuctionsScreen> {
     );
     if (confirmed != true || !mounted) return;
 
-    final failure =
-        await ref.read(deleteAuctionUseCaseProvider)(auction.auctionId);
+    final (isSoft, failure) = await ref
+        .read(deleteAuctionUseCaseProvider)(auction.auctionId, adminUid);
     if (!mounted) return;
     if (failure != null) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-            content: Text(failure.message), backgroundColor: AppColors.error),
+          content: Text(failure.message),
+          backgroundColor: AppColors.error,
+        ),
       );
       return;
     }
     ref.invalidate(adminAuctionsProvider(adminUid));
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(context.l10n.auctionDeleted),
+        content: Text(
+          isSoft == true
+              ? context.l10n.auctionSoftDeleted
+              : context.l10n.auctionDeleted,
+        ),
         backgroundColor: AppColors.success,
       ),
     );
@@ -202,6 +262,9 @@ class _ManageAuctionsScreenState extends ConsumerState<ManageAuctionsScreen> {
                             : null,
                         onDelete: canEdit
                             ? () => _confirmDelete(a, adminUid)
+                            : null,
+                        onPublish: a.auctionStatus == SupabaseConstants.statusDraft
+                            ? () => _confirmPublish(a, adminUid)
                             : null,
                       );
                     },
