@@ -193,18 +193,35 @@ class UpdateAuctionUseCase {
   }
 }
 
-class DeleteAuctionUseCase {
-  const DeleteAuctionUseCase(this._repo);
+class PublishDraftUseCase {
+  const PublishDraftUseCase(this._repo);
   final AuctionRepository _repo;
 
   Future<Failure?> call(String auctionId) async {
     try {
-      await _repo.deleteAuction(auctionId);
+      await _repo.publishDraft(auctionId);
       return null;
     } on DatabaseException catch (e) {
       return DatabaseFailure(e.message);
     } catch (e) {
       return UnknownFailure(e.toString());
+    }
+  }
+}
+
+class DeleteAuctionUseCase {
+  const DeleteAuctionUseCase(this._repo);
+  final AuctionRepository _repo;
+
+  // Returns (isSoftDeleted, failure). isSoftDeleted is null on error.
+  Future<(bool?, Failure?)> call(String auctionId, String deletedByUid) async {
+    try {
+      final isSoft = await _repo.deleteAuction(auctionId, deletedByUid);
+      return (isSoft, null);
+    } on DatabaseException catch (e) {
+      return (null, DatabaseFailure(e.message));
+    } catch (e) {
+      return (null, UnknownFailure(e.toString()));
     }
   }
 }
