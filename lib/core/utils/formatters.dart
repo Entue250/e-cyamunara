@@ -37,10 +37,10 @@ class AppFormatters {
   static String categoryLabel(String cat) => titleCase(cat);
 
   static String conditionColor(String condition) => switch (condition) {
-    'excellent' => '#2E7D32',
-    'good' => '#1565C0',
-    'fair' => '#E65100',
-    'poor' => '#C62828',
-    _ => '#757575',
+    'Excellent' || 'Very Good' => '#2E7D32',
+    'Good'                     => '#1565C0',
+    'Fair'                     => '#E65100',
+    'Poor'                     => '#C62828',
+    _                          => '#757575',
   };
 }
