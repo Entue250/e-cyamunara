@@ -700,5 +700,17 @@
       "brand": { "type": "String" },
       "subcategory": { "type": "String" }
     }
-  }
+  },
+  "publishDraft": "Publish Auction",
+  "publish": "PUBLISH",
+  "publishTooltip": "Publish Draft",
+  "publishConfirmMessage": "Publish \"{name}\" (LOT #{id})?\n\nThis will make the auction live and visible to all clients. Bidding will begin immediately.",
+  "@publishConfirmMessage": {
+    "placeholders": {
+      "name": { "type": "String" },
+      "id": { "type": "String" }
+    }
+  },
+  "auctionPublished": "Auction published successfully!",
+  "auctionSoftDeleted": "Auction removed from listings (bid history preserved)."
 }
