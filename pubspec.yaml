@@ -36,6 +36,9 @@ dependencies:
   # ─── Supabase (replaces all Firebase packages) ───────────────────────────
   supabase_flutter: ^2.5.6 # Auth + Database + Storage + Realtime
 
+  # ─── Environment variables (loaded from .env asset at runtime) ───────────
+  flutter_dotenv: ^5.2.1
+
   # ─── Push Notifications (OneSignal — free, no card needed) ──────────────
   onesignal_flutter: ^5.2.6
 
@@ -118,6 +121,7 @@ flutter:
 
   # To add assets to your application, add an assets section, like this:
   assets:
+    - .env
     - assets/images/
     - assets/icons/
 
