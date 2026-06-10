@@ -1464,4 +1464,236 @@ class AppLocalizationsRw extends AppLocalizations {
 
   @override
   String get nationalLevelRnp => 'Urwego rw\'Igihugu — RNP';
+
+  @override
+  String get basicInformation => 'AMAKURU ASANZWE';
+
+  @override
+  String get technicalSpecs => 'IBISOBANURO BY\'IMYIRONDORO';
+
+  @override
+  String get ownershipSection => 'UBUTENGANYI N\'AMATEKA';
+
+  @override
+  String get mainCategoryLabel => 'UBWOKO BUKURU';
+
+  @override
+  String get subCategoryLabel => 'UBWOKO BUNINI';
+
+  @override
+  String get brandLabel => 'MAKA';
+
+  @override
+  String get modelField => 'MODELI';
+
+  @override
+  String get manufacturingYearLabel => 'UMWAKA W\'UBUREMANE';
+
+  @override
+  String get colorField => 'IBARA';
+
+  @override
+  String get mileageField => 'KILOMETERI ZAGENZE';
+
+  @override
+  String get fuelTypeField => 'UBWOKO BW\'INKORANA';
+
+  @override
+  String get transmissionField => 'INGIRISHI';
+
+  @override
+  String get engineSizeField => 'INGANO YA MOTERI (L)';
+
+  @override
+  String get engineCcField => 'CC YA MOTERI';
+
+  @override
+  String get drivetrainField => 'UBURYO BUGUKANDAGIRA';
+
+  @override
+  String get seatingCapacityField => 'IMYANYA YO KWICARA';
+
+  @override
+  String get frameMaterialField => 'IBIKORESHO BY\'INZIZI';
+
+  @override
+  String get gearCountField => 'UMUBARE W\'INGIRISHI';
+
+  @override
+  String get suspensionTypeField => 'UBWOKO BW\'INZIRA';
+
+  @override
+  String get brakeTypeField => 'UBWOKO BW\'AMAFARASHI';
+
+  @override
+  String get ownershipHistoryField => 'AMATEKA Y\'UBUTENGANYI';
+
+  @override
+  String get accidentHistoryField => 'AMATEKA Y\'IMPANUKA';
+
+  @override
+  String get insuranceStatusField => 'IMIMERERE Y\'UBWISHINGIZI';
+
+  @override
+  String get optionPetrol => 'Benzini';
+
+  @override
+  String get optionDiesel => 'Mazutu';
+
+  @override
+  String get optionHybrid => 'Hybrid';
+
+  @override
+  String get optionElectric => 'Amashanyarazi';
+
+  @override
+  String get optionAutomatic => 'Otomatike';
+
+  @override
+  String get optionManual => 'Maniyeli';
+
+  @override
+  String get optionCvt => 'CVT';
+
+  @override
+  String get optionExcellent => 'Byiza cyane';
+
+  @override
+  String get optionVeryGood => 'Byiza';
+
+  @override
+  String get optionGood => 'Bifatika';
+
+  @override
+  String get optionFair => 'Bisanzwe';
+
+  @override
+  String get optionPoor => 'Bibi';
+
+  @override
+  String get optionFirstOwner => 'Nyir\'wibanze';
+
+  @override
+  String get optionSecondOwner => 'Nyir\'inshuro ya kabiri';
+
+  @override
+  String get optionThirdOwner => 'Nyir\'inshuro ya gatatu';
+
+  @override
+  String get optionFleetVehicle => 'Imodoka ya Filote';
+
+  @override
+  String get optionInsured => 'Ifite ubwishingizi';
+
+  @override
+  String get optionExpiredInsurance => 'Ubwishingizi bwarangiye';
+
+  @override
+  String get optionNeverInsured => 'Ntabwo yigeze ifata ubwishingizi';
+
+  @override
+  String get optionUnknown => 'Ntizwi';
+
+  @override
+  String get optionNoAccidents => 'Nta mpanuka';
+
+  @override
+  String get optionMinorDamage => 'Ingaruka nto';
+
+  @override
+  String get optionMajorDamage => 'Ingaruka nini';
+
+  @override
+  String validatorYearRange(int year) {
+    return 'Umwaka ugomba kuba hagati ya 1900 na $year';
+  }
+
+  @override
+  String get validatorMileageNegative =>
+      'Kilometeri ntishobora kuba nke y\'ubusa';
+
+  @override
+  String get validatorEngineCcRequired => 'CC ya moteri birakenewe ku moto';
+
+  @override
+  String get validatorEngineSizeRequired =>
+      'Ingano ya moteri birakenewe ku modoka';
+
+  @override
+  String get validatorTransmissionRequired => 'Ingirishi birakenewe ku modoka';
+
+  @override
+  String get validatorGearCountRequired =>
+      'Umubare w\'ingirishi birakenewe ku igare';
+
+  @override
+  String get validatorFuelTypeRequired => 'Ubwoko bw\'inkorana burakenewe';
+
+  @override
+  String get validatorSubCategoryRequired => 'Ubwoko bunini burakenewe';
+
+  @override
+  String get validatorBrandRequired => 'Maka irakenewe';
+
+  @override
+  String get validatorModelRequired => 'Izina rya modeli rirakenewe';
+
+  @override
+  String get validatorColorRequired => 'Ibara birakenewe';
+
+  @override
+  String get validatorYearRequired => 'Umwaka w\'uburemane urakenewe';
+
+  @override
+  String get validatorMileageRequired => 'Kilometeri zagenze zirakenewe';
+
+  @override
+  String get selectSubCategory => 'Hitamo ubwoko bunini';
+
+  @override
+  String get selectBrand => 'Hitamo maka';
+
+  @override
+  String get selectFuelType => 'Hitamo ubwoko bw\'inkorana';
+
+  @override
+  String get selectTransmission => 'Hitamo ingirishi';
+
+  @override
+  String get selectDrivetrain => 'Hitamo uburyo bugukandagira';
+
+  @override
+  String get selectCondition => 'Hitamo imimerere';
+
+  @override
+  String get selectFrameMaterial => 'Hitamo ibikoresho by\'inzizi';
+
+  @override
+  String get selectSuspension => 'Hitamo ubwoko bw\'inzira';
+
+  @override
+  String get selectBrakeType => 'Hitamo ubwoko bw\'amafarashi';
+
+  @override
+  String get selectOwnershipHistory => 'Hitamo amateka y\'ubutenganyi';
+
+  @override
+  String get selectAccidentHistory => 'Hitamo amateka y\'impanuka';
+
+  @override
+  String get selectInsuranceStatus => 'Hitamo imimerere y\'ubwishingizi';
+
+  @override
+  String get vehicleLabel => 'Imodoka';
+
+  @override
+  String get motorcycleLabel => 'Moto';
+
+  @override
+  String get bicycleLabel => 'Igare';
+
+  @override
+  String brandSubcategoryChip(String brand, String subcategory) {
+    return '$brand • $subcategory';
+  }
 }
