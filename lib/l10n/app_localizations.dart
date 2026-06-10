@@ -3255,21 +3255,39 @@ abstract class AppLocalizations {
   String brandSubcategoryChip(String brand, String subcategory);
 
   /// No description provided for @publishDraft.
+  ///
+  /// In en, this message translates to:
+  /// **'Publish Auction'**
   String get publishDraft;
 
   /// No description provided for @publish.
+  ///
+  /// In en, this message translates to:
+  /// **'PUBLISH'**
   String get publish;
 
   /// No description provided for @publishTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Publish Draft'**
   String get publishTooltip;
 
   /// No description provided for @publishConfirmMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Publish \"{name}\" (LOT #{id})?\n\nThis will make the auction live and visible to all clients. Bidding will begin immediately.'**
   String publishConfirmMessage(String name, String id);
 
   /// No description provided for @auctionPublished.
+  ///
+  /// In en, this message translates to:
+  /// **'Auction published successfully!'**
   String get auctionPublished;
 
   /// No description provided for @auctionSoftDeleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Auction removed from listings (bid history preserved).'**
   String get auctionSoftDeleted;
 }
 
