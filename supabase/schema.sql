@@ -70,7 +70,7 @@ create table if not exists public.auctions (
   item_name            text not null,
   category             text not null check (category in ('car','motorcycle','bicycle')),
   plate_number         text not null,
-  condition            text not null check (condition in ('excellent','good','fair','poor')),
+  condition            text not null check (condition in ('Excellent','Very Good','Good','Fair','Poor')),
   description          text not null,
   photo_urls           text[] not null default '{}',
   starting_price       numeric(15,2) not null check (starting_price > 0),
