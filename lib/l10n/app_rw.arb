@@ -605,5 +605,17 @@
       "brand": { "type": "String" },
       "subcategory": { "type": "String" }
     }
-  }
+  },
+  "publishDraft": "Tangaza Isoko",
+  "publish": "TANGAZA",
+  "publishTooltip": "Tangaza Inzibacyuho",
+  "publishConfirmMessage": "Tangaza \"{name}\" (LOT #{id})?\n\nIbi bizatera isoko kugaragara kuri bakiriya bose. Gutanga ibiciro bizatangira ako kanya.",
+  "@publishConfirmMessage": {
+    "placeholders": {
+      "name": { "type": "String" },
+      "id": { "type": "String" }
+    }
+  },
+  "auctionPublished": "Isoko ryatangazwa neza!",
+  "auctionSoftDeleted": "Isoko ryavanwe ku rutonde (amateka y'ibiciro abitswe)."
 }
