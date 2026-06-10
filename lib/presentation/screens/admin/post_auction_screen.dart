@@ -953,6 +953,7 @@ class _PostAuctionScreenState extends ConsumerState<PostAuctionScreen> {
         FormLabel(label),
         DropdownButtonFormField<T>(
           initialValue: value,
+          isExpanded: true,
           decoration: InputDecoration(hintText: hint),
           items: items
               .map((item) => DropdownMenuItem<T>(
