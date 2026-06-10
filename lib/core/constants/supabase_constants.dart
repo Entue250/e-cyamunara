@@ -4,14 +4,16 @@
 // Edge Function names, and app-wide constants.
 // Never type table names as raw strings in repositories — always use these.
 
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+
 class SupabaseConstants {
   SupabaseConstants._();
 
   // ── Supabase project credentials ──────────────────────────────────────────
-  // Injected at build time from .env.json via --dart-define-from-file=.env.json
-  // Never hardcode these values here — edit .env.json instead.
-  static const String supabaseUrl = String.fromEnvironment('SUPABASE_URL');
-  static const String supabaseAnonKey = String.fromEnvironment('SUPABASE_ANON_KEY');
+  // Loaded at runtime from the .env asset (via flutter_dotenv).
+  // Edit .env to change values — never hardcode here.
+  static String get supabaseUrl => dotenv.env['SUPABASE_URL'] ?? '';
+  static String get supabaseAnonKey => dotenv.env['SUPABASE_ANON_KEY'] ?? '';
 
   // ── Table names ───────────────────────────────────────────────────────────
   static const String usersTable = 'users';
@@ -43,8 +45,7 @@ class SupabaseConstants {
   static const String fnResetClientPassword = 'reset-client-password';
 
   // ── OneSignal (push notifications) ───────────────────────────────────────
-  // Injected at build time from .env.json via --dart-define-from-file=.env.json
-  static const String oneSignalAppId = String.fromEnvironment('ONESIGNAL_APP_ID');
+  static String get oneSignalAppId => dotenv.env['ONESIGNAL_APP_ID'] ?? '';
 
   // ── Roles ─────────────────────────────────────────────────────────────────
   static const String roleClient = 'client';
