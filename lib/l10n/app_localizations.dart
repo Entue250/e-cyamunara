@@ -2803,6 +2803,456 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'National Level — RNP'**
   String get nationalLevelRnp;
+
+  /// No description provided for @basicInformation.
+  ///
+  /// In en, this message translates to:
+  /// **'BASIC INFORMATION'**
+  String get basicInformation;
+
+  /// No description provided for @technicalSpecs.
+  ///
+  /// In en, this message translates to:
+  /// **'TECHNICAL SPECIFICATIONS'**
+  String get technicalSpecs;
+
+  /// No description provided for @ownershipSection.
+  ///
+  /// In en, this message translates to:
+  /// **'OWNERSHIP & HISTORY'**
+  String get ownershipSection;
+
+  /// No description provided for @mainCategoryLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'MAIN CATEGORY'**
+  String get mainCategoryLabel;
+
+  /// No description provided for @subCategoryLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'SUB-CATEGORY'**
+  String get subCategoryLabel;
+
+  /// No description provided for @brandLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'BRAND'**
+  String get brandLabel;
+
+  /// No description provided for @modelField.
+  ///
+  /// In en, this message translates to:
+  /// **'MODEL'**
+  String get modelField;
+
+  /// No description provided for @manufacturingYearLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'MANUFACTURING YEAR'**
+  String get manufacturingYearLabel;
+
+  /// No description provided for @colorField.
+  ///
+  /// In en, this message translates to:
+  /// **'COLOR'**
+  String get colorField;
+
+  /// No description provided for @mileageField.
+  ///
+  /// In en, this message translates to:
+  /// **'MILEAGE (KM)'**
+  String get mileageField;
+
+  /// No description provided for @fuelTypeField.
+  ///
+  /// In en, this message translates to:
+  /// **'FUEL TYPE'**
+  String get fuelTypeField;
+
+  /// No description provided for @transmissionField.
+  ///
+  /// In en, this message translates to:
+  /// **'TRANSMISSION'**
+  String get transmissionField;
+
+  /// No description provided for @engineSizeField.
+  ///
+  /// In en, this message translates to:
+  /// **'ENGINE SIZE (L)'**
+  String get engineSizeField;
+
+  /// No description provided for @engineCcField.
+  ///
+  /// In en, this message translates to:
+  /// **'ENGINE CC'**
+  String get engineCcField;
+
+  /// No description provided for @drivetrainField.
+  ///
+  /// In en, this message translates to:
+  /// **'DRIVETRAIN'**
+  String get drivetrainField;
+
+  /// No description provided for @seatingCapacityField.
+  ///
+  /// In en, this message translates to:
+  /// **'SEATING CAPACITY'**
+  String get seatingCapacityField;
+
+  /// No description provided for @frameMaterialField.
+  ///
+  /// In en, this message translates to:
+  /// **'FRAME MATERIAL'**
+  String get frameMaterialField;
+
+  /// No description provided for @gearCountField.
+  ///
+  /// In en, this message translates to:
+  /// **'GEAR COUNT'**
+  String get gearCountField;
+
+  /// No description provided for @suspensionTypeField.
+  ///
+  /// In en, this message translates to:
+  /// **'SUSPENSION TYPE'**
+  String get suspensionTypeField;
+
+  /// No description provided for @brakeTypeField.
+  ///
+  /// In en, this message translates to:
+  /// **'BRAKE TYPE'**
+  String get brakeTypeField;
+
+  /// No description provided for @ownershipHistoryField.
+  ///
+  /// In en, this message translates to:
+  /// **'OWNERSHIP HISTORY'**
+  String get ownershipHistoryField;
+
+  /// No description provided for @accidentHistoryField.
+  ///
+  /// In en, this message translates to:
+  /// **'ACCIDENT HISTORY'**
+  String get accidentHistoryField;
+
+  /// No description provided for @insuranceStatusField.
+  ///
+  /// In en, this message translates to:
+  /// **'INSURANCE STATUS'**
+  String get insuranceStatusField;
+
+  /// No description provided for @optionPetrol.
+  ///
+  /// In en, this message translates to:
+  /// **'Petrol'**
+  String get optionPetrol;
+
+  /// No description provided for @optionDiesel.
+  ///
+  /// In en, this message translates to:
+  /// **'Diesel'**
+  String get optionDiesel;
+
+  /// No description provided for @optionHybrid.
+  ///
+  /// In en, this message translates to:
+  /// **'Hybrid'**
+  String get optionHybrid;
+
+  /// No description provided for @optionElectric.
+  ///
+  /// In en, this message translates to:
+  /// **'Electric'**
+  String get optionElectric;
+
+  /// No description provided for @optionAutomatic.
+  ///
+  /// In en, this message translates to:
+  /// **'Automatic'**
+  String get optionAutomatic;
+
+  /// No description provided for @optionManual.
+  ///
+  /// In en, this message translates to:
+  /// **'Manual'**
+  String get optionManual;
+
+  /// No description provided for @optionCvt.
+  ///
+  /// In en, this message translates to:
+  /// **'CVT'**
+  String get optionCvt;
+
+  /// No description provided for @optionExcellent.
+  ///
+  /// In en, this message translates to:
+  /// **'Excellent'**
+  String get optionExcellent;
+
+  /// No description provided for @optionVeryGood.
+  ///
+  /// In en, this message translates to:
+  /// **'Very Good'**
+  String get optionVeryGood;
+
+  /// No description provided for @optionGood.
+  ///
+  /// In en, this message translates to:
+  /// **'Good'**
+  String get optionGood;
+
+  /// No description provided for @optionFair.
+  ///
+  /// In en, this message translates to:
+  /// **'Fair'**
+  String get optionFair;
+
+  /// No description provided for @optionPoor.
+  ///
+  /// In en, this message translates to:
+  /// **'Poor'**
+  String get optionPoor;
+
+  /// No description provided for @optionFirstOwner.
+  ///
+  /// In en, this message translates to:
+  /// **'First Owner'**
+  String get optionFirstOwner;
+
+  /// No description provided for @optionSecondOwner.
+  ///
+  /// In en, this message translates to:
+  /// **'Second Owner'**
+  String get optionSecondOwner;
+
+  /// No description provided for @optionThirdOwner.
+  ///
+  /// In en, this message translates to:
+  /// **'Third Owner'**
+  String get optionThirdOwner;
+
+  /// No description provided for @optionFleetVehicle.
+  ///
+  /// In en, this message translates to:
+  /// **'Fleet Vehicle'**
+  String get optionFleetVehicle;
+
+  /// No description provided for @optionInsured.
+  ///
+  /// In en, this message translates to:
+  /// **'Insured'**
+  String get optionInsured;
+
+  /// No description provided for @optionExpiredInsurance.
+  ///
+  /// In en, this message translates to:
+  /// **'Expired'**
+  String get optionExpiredInsurance;
+
+  /// No description provided for @optionNeverInsured.
+  ///
+  /// In en, this message translates to:
+  /// **'Never Insured'**
+  String get optionNeverInsured;
+
+  /// No description provided for @optionUnknown.
+  ///
+  /// In en, this message translates to:
+  /// **'Unknown'**
+  String get optionUnknown;
+
+  /// No description provided for @optionNoAccidents.
+  ///
+  /// In en, this message translates to:
+  /// **'No Accidents'**
+  String get optionNoAccidents;
+
+  /// No description provided for @optionMinorDamage.
+  ///
+  /// In en, this message translates to:
+  /// **'Minor Damage'**
+  String get optionMinorDamage;
+
+  /// No description provided for @optionMajorDamage.
+  ///
+  /// In en, this message translates to:
+  /// **'Major Damage'**
+  String get optionMajorDamage;
+
+  /// No description provided for @validatorYearRange.
+  ///
+  /// In en, this message translates to:
+  /// **'Year must be between 1900 and {year}'**
+  String validatorYearRange(int year);
+
+  /// No description provided for @validatorMileageNegative.
+  ///
+  /// In en, this message translates to:
+  /// **'Mileage cannot be negative'**
+  String get validatorMileageNegative;
+
+  /// No description provided for @validatorEngineCcRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Engine CC is required for motorcycles'**
+  String get validatorEngineCcRequired;
+
+  /// No description provided for @validatorEngineSizeRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Engine size is required for vehicles'**
+  String get validatorEngineSizeRequired;
+
+  /// No description provided for @validatorTransmissionRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Transmission is required for vehicles'**
+  String get validatorTransmissionRequired;
+
+  /// No description provided for @validatorGearCountRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Gear count is required for bicycles'**
+  String get validatorGearCountRequired;
+
+  /// No description provided for @validatorFuelTypeRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Fuel type is required'**
+  String get validatorFuelTypeRequired;
+
+  /// No description provided for @validatorSubCategoryRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Sub-category is required'**
+  String get validatorSubCategoryRequired;
+
+  /// No description provided for @validatorBrandRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Brand is required'**
+  String get validatorBrandRequired;
+
+  /// No description provided for @validatorModelRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Model name is required'**
+  String get validatorModelRequired;
+
+  /// No description provided for @validatorColorRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Color is required'**
+  String get validatorColorRequired;
+
+  /// No description provided for @validatorYearRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Manufacturing year is required'**
+  String get validatorYearRequired;
+
+  /// No description provided for @validatorMileageRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Mileage is required'**
+  String get validatorMileageRequired;
+
+  /// No description provided for @selectSubCategory.
+  ///
+  /// In en, this message translates to:
+  /// **'Select sub-category'**
+  String get selectSubCategory;
+
+  /// No description provided for @selectBrand.
+  ///
+  /// In en, this message translates to:
+  /// **'Select brand'**
+  String get selectBrand;
+
+  /// No description provided for @selectFuelType.
+  ///
+  /// In en, this message translates to:
+  /// **'Select fuel type'**
+  String get selectFuelType;
+
+  /// No description provided for @selectTransmission.
+  ///
+  /// In en, this message translates to:
+  /// **'Select transmission'**
+  String get selectTransmission;
+
+  /// No description provided for @selectDrivetrain.
+  ///
+  /// In en, this message translates to:
+  /// **'Select drivetrain'**
+  String get selectDrivetrain;
+
+  /// No description provided for @selectCondition.
+  ///
+  /// In en, this message translates to:
+  /// **'Select condition'**
+  String get selectCondition;
+
+  /// No description provided for @selectFrameMaterial.
+  ///
+  /// In en, this message translates to:
+  /// **'Select frame material'**
+  String get selectFrameMaterial;
+
+  /// No description provided for @selectSuspension.
+  ///
+  /// In en, this message translates to:
+  /// **'Select suspension type'**
+  String get selectSuspension;
+
+  /// No description provided for @selectBrakeType.
+  ///
+  /// In en, this message translates to:
+  /// **'Select brake type'**
+  String get selectBrakeType;
+
+  /// No description provided for @selectOwnershipHistory.
+  ///
+  /// In en, this message translates to:
+  /// **'Select ownership history'**
+  String get selectOwnershipHistory;
+
+  /// No description provided for @selectAccidentHistory.
+  ///
+  /// In en, this message translates to:
+  /// **'Select accident history'**
+  String get selectAccidentHistory;
+
+  /// No description provided for @selectInsuranceStatus.
+  ///
+  /// In en, this message translates to:
+  /// **'Select insurance status'**
+  String get selectInsuranceStatus;
+
+  /// No description provided for @vehicleLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Vehicle'**
+  String get vehicleLabel;
+
+  /// No description provided for @motorcycleLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Motorcycle'**
+  String get motorcycleLabel;
+
+  /// No description provided for @bicycleLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Bicycle'**
+  String get bicycleLabel;
+
+  /// No description provided for @brandSubcategoryChip.
+  ///
+  /// In en, this message translates to:
+  /// **'{brand} • {subcategory}'**
+  String brandSubcategoryChip(String brand, String subcategory);
 }
 
 class _AppLocalizationsDelegate
