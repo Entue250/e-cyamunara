@@ -1457,4 +1457,237 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get nationalLevelRnp => 'National Level — RNP';
+
+  @override
+  String get basicInformation => 'BASIC INFORMATION';
+
+  @override
+  String get technicalSpecs => 'TECHNICAL SPECIFICATIONS';
+
+  @override
+  String get ownershipSection => 'OWNERSHIP & HISTORY';
+
+  @override
+  String get mainCategoryLabel => 'MAIN CATEGORY';
+
+  @override
+  String get subCategoryLabel => 'SUB-CATEGORY';
+
+  @override
+  String get brandLabel => 'BRAND';
+
+  @override
+  String get modelField => 'MODEL';
+
+  @override
+  String get manufacturingYearLabel => 'MANUFACTURING YEAR';
+
+  @override
+  String get colorField => 'COLOR';
+
+  @override
+  String get mileageField => 'MILEAGE (KM)';
+
+  @override
+  String get fuelTypeField => 'FUEL TYPE';
+
+  @override
+  String get transmissionField => 'TRANSMISSION';
+
+  @override
+  String get engineSizeField => 'ENGINE SIZE (L)';
+
+  @override
+  String get engineCcField => 'ENGINE CC';
+
+  @override
+  String get drivetrainField => 'DRIVETRAIN';
+
+  @override
+  String get seatingCapacityField => 'SEATING CAPACITY';
+
+  @override
+  String get frameMaterialField => 'FRAME MATERIAL';
+
+  @override
+  String get gearCountField => 'GEAR COUNT';
+
+  @override
+  String get suspensionTypeField => 'SUSPENSION TYPE';
+
+  @override
+  String get brakeTypeField => 'BRAKE TYPE';
+
+  @override
+  String get ownershipHistoryField => 'OWNERSHIP HISTORY';
+
+  @override
+  String get accidentHistoryField => 'ACCIDENT HISTORY';
+
+  @override
+  String get insuranceStatusField => 'INSURANCE STATUS';
+
+  @override
+  String get optionPetrol => 'Petrol';
+
+  @override
+  String get optionDiesel => 'Diesel';
+
+  @override
+  String get optionHybrid => 'Hybrid';
+
+  @override
+  String get optionElectric => 'Electric';
+
+  @override
+  String get optionAutomatic => 'Automatic';
+
+  @override
+  String get optionManual => 'Manual';
+
+  @override
+  String get optionCvt => 'CVT';
+
+  @override
+  String get optionExcellent => 'Excellent';
+
+  @override
+  String get optionVeryGood => 'Very Good';
+
+  @override
+  String get optionGood => 'Good';
+
+  @override
+  String get optionFair => 'Fair';
+
+  @override
+  String get optionPoor => 'Poor';
+
+  @override
+  String get optionFirstOwner => 'First Owner';
+
+  @override
+  String get optionSecondOwner => 'Second Owner';
+
+  @override
+  String get optionThirdOwner => 'Third Owner';
+
+  @override
+  String get optionFleetVehicle => 'Fleet Vehicle';
+
+  @override
+  String get optionInsured => 'Insured';
+
+  @override
+  String get optionExpiredInsurance => 'Expired';
+
+  @override
+  String get optionNeverInsured => 'Never Insured';
+
+  @override
+  String get optionUnknown => 'Unknown';
+
+  @override
+  String get optionNoAccidents => 'No Accidents';
+
+  @override
+  String get optionMinorDamage => 'Minor Damage';
+
+  @override
+  String get optionMajorDamage => 'Major Damage';
+
+  @override
+  String validatorYearRange(int year) {
+    return 'Year must be between 1900 and $year';
+  }
+
+  @override
+  String get validatorMileageNegative => 'Mileage cannot be negative';
+
+  @override
+  String get validatorEngineCcRequired =>
+      'Engine CC is required for motorcycles';
+
+  @override
+  String get validatorEngineSizeRequired =>
+      'Engine size is required for vehicles';
+
+  @override
+  String get validatorTransmissionRequired =>
+      'Transmission is required for vehicles';
+
+  @override
+  String get validatorGearCountRequired =>
+      'Gear count is required for bicycles';
+
+  @override
+  String get validatorFuelTypeRequired => 'Fuel type is required';
+
+  @override
+  String get validatorSubCategoryRequired => 'Sub-category is required';
+
+  @override
+  String get validatorBrandRequired => 'Brand is required';
+
+  @override
+  String get validatorModelRequired => 'Model name is required';
+
+  @override
+  String get validatorColorRequired => 'Color is required';
+
+  @override
+  String get validatorYearRequired => 'Manufacturing year is required';
+
+  @override
+  String get validatorMileageRequired => 'Mileage is required';
+
+  @override
+  String get selectSubCategory => 'Select sub-category';
+
+  @override
+  String get selectBrand => 'Select brand';
+
+  @override
+  String get selectFuelType => 'Select fuel type';
+
+  @override
+  String get selectTransmission => 'Select transmission';
+
+  @override
+  String get selectDrivetrain => 'Select drivetrain';
+
+  @override
+  String get selectCondition => 'Select condition';
+
+  @override
+  String get selectFrameMaterial => 'Select frame material';
+
+  @override
+  String get selectSuspension => 'Select suspension type';
+
+  @override
+  String get selectBrakeType => 'Select brake type';
+
+  @override
+  String get selectOwnershipHistory => 'Select ownership history';
+
+  @override
+  String get selectAccidentHistory => 'Select accident history';
+
+  @override
+  String get selectInsuranceStatus => 'Select insurance status';
+
+  @override
+  String get vehicleLabel => 'Vehicle';
+
+  @override
+  String get motorcycleLabel => 'Motorcycle';
+
+  @override
+  String get bicycleLabel => 'Bicycle';
+
+  @override
+  String brandSubcategoryChip(String brand, String subcategory) {
+    return '$brand • $subcategory';
+  }
 }
