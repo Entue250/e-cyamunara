@@ -238,6 +238,12 @@ class AuctionModel {
   final String? accidentHistory;
   final String? insuranceStatus;
 
+  // Phase 1 AI: engagement analytics
+  final int viewsCount;
+  final int uniqueBidderCount;
+  final DateTime? timeOfFirstBid;
+  final DateTime? timeOfLastBid;
+
   const AuctionModel({
     required this.auctionId,
     required this.itemName,
@@ -283,6 +289,10 @@ class AuctionModel {
     this.ownershipHistory,
     this.accidentHistory,
     this.insuranceStatus,
+    this.viewsCount = 0,
+    this.uniqueBidderCount = 0,
+    this.timeOfFirstBid,
+    this.timeOfLastBid,
   });
 
   factory AuctionModel.fromMap(Map<String, dynamic> map) => AuctionModel(
@@ -340,6 +350,14 @@ class AuctionModel {
     ownershipHistory: map['ownership_history'] as String?,
     accidentHistory:  map['accident_history'] as String?,
     insuranceStatus:  map['insurance_status'] as String?,
+    viewsCount:       (map['views_count'] as num?)?.toInt() ?? 0,
+    uniqueBidderCount:(map['unique_bidder_count'] as num?)?.toInt() ?? 0,
+    timeOfFirstBid:   map['time_of_first_bid'] != null
+                        ? DateTime.parse(map['time_of_first_bid'] as String)
+                        : null,
+    timeOfLastBid:    map['time_of_last_bid'] != null
+                        ? DateTime.parse(map['time_of_last_bid'] as String)
+                        : null,
   );
 
   Map<String, dynamic> toMap() => {
@@ -382,9 +400,13 @@ class AuctionModel {
     if (gearCount != null)        'gear_count':         gearCount,
     if (suspensionType != null)   'suspension_type':    suspensionType,
     if (brakeType != null)        'brake_type':         brakeType,
-    if (ownershipHistory != null) 'ownership_history':  ownershipHistory,
-    if (accidentHistory != null)  'accident_history':   accidentHistory,
-    if (insuranceStatus != null)  'insurance_status':   insuranceStatus,
+    if (ownershipHistory != null) 'ownership_history':   ownershipHistory,
+    if (accidentHistory != null)  'accident_history':    accidentHistory,
+    if (insuranceStatus != null)  'insurance_status':    insuranceStatus,
+    if (viewsCount != 0)          'views_count':         viewsCount,
+    if (uniqueBidderCount != 0)   'unique_bidder_count': uniqueBidderCount,
+    if (timeOfFirstBid != null)   'time_of_first_bid':   timeOfFirstBid!.toIso8601String(),
+    if (timeOfLastBid != null)    'time_of_last_bid':    timeOfLastBid!.toIso8601String(),
   };
 
   AuctionModel copyWith({
@@ -430,6 +452,10 @@ class AuctionModel {
     String? ownershipHistory,
     String? accidentHistory,
     String? insuranceStatus,
+    int? viewsCount,
+    int? uniqueBidderCount,
+    DateTime? timeOfFirstBid,
+    DateTime? timeOfLastBid,
   }) => AuctionModel(
     auctionId:          auctionId,
     itemName:           itemName ?? this.itemName,
@@ -475,6 +501,10 @@ class AuctionModel {
     ownershipHistory:   ownershipHistory ?? this.ownershipHistory,
     accidentHistory:    accidentHistory ?? this.accidentHistory,
     insuranceStatus:    insuranceStatus ?? this.insuranceStatus,
+    viewsCount:         viewsCount ?? this.viewsCount,
+    uniqueBidderCount:  uniqueBidderCount ?? this.uniqueBidderCount,
+    timeOfFirstBid:     timeOfFirstBid ?? this.timeOfFirstBid,
+    timeOfLastBid:      timeOfLastBid ?? this.timeOfLastBid,
   );
 
   bool get isActive => auctionStatus == 'active';
@@ -484,6 +514,10 @@ class AuctionModel {
   // Resolved main category — falls back to legacy 'category' field for old records
   String get resolvedMainCategory =>
       mainCategory?.isNotEmpty == true ? mainCategory! : category;
+
+  Duration get auctionDuration => endDate.difference(startDate);
+
+  Duration? get timeToFirstBid => timeOfFirstBid?.difference(startDate);
 
   @override
   bool operator ==(Object other) =>
@@ -508,6 +542,12 @@ class BidModel {
   final DateTime createdAt;
   final DateTime? updatedAt;
 
+  // Phase 1 AI: behavioral features (nullable; NULL for pre-Phase-1 bids)
+  final int? bidSequence;
+  final int? secondsBeforeEnd;
+  final double? bidIncrement;
+  final bool isBidUpdate;
+
   const BidModel({
     required this.bidId,
     required this.auctionId,
@@ -519,6 +559,10 @@ class BidModel {
     required this.bidStatus,
     required this.createdAt,
     this.updatedAt,
+    this.bidSequence,
+    this.secondsBeforeEnd,
+    this.bidIncrement,
+    this.isBidUpdate = false,
   });
 
   factory BidModel.fromMap(Map<String, dynamic> map) => BidModel(
@@ -536,6 +580,10 @@ class BidModel {
     updatedAt: map['updated_at'] != null
         ? DateTime.parse(map['updated_at'] as String)
         : null,
+    bidSequence:      (map['bid_sequence'] as num?)?.toInt(),
+    secondsBeforeEnd: (map['seconds_before_end'] as num?)?.toInt(),
+    bidIncrement:     (map['bid_increment'] as num?)?.toDouble(),
+    isBidUpdate:      map['is_bid_update'] as bool? ?? false,
   );
 
   Map<String, dynamic> toMap() => {
@@ -546,6 +594,10 @@ class BidModel {
     'bidder_district': bidderDistrict,
     'bid_amount':      bidAmount,
     'bid_status':      bidStatus,
+    if (bidSequence != null)      'bid_sequence':       bidSequence,
+    if (secondsBeforeEnd != null) 'seconds_before_end': secondsBeforeEnd,
+    if (bidIncrement != null)     'bid_increment':      bidIncrement,
+    'is_bid_update':              isBidUpdate,
   };
 
   bool get isWinning => bidStatus == 'winning';

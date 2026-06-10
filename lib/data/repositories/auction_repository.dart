@@ -207,6 +207,45 @@ class AuctionRepository {
   Future<void> publishDraft(String auctionId) =>
       updateAuctionStatus(auctionId, SupabaseConstants.statusActive);
 
+  // ── RECORD AUCTION VIEW ───────────────────────────────────────────────────
+  // Returns (viewId, isNewView). isNewView = false when suppressed by 30-min dedup.
+  Future<(String? viewId, bool isNewView)> recordAuctionView({
+    required String auctionId,
+    required String viewerUid,
+    String deviceType = 'mobile',
+  }) async {
+    try {
+      final result = await _client.rpc('record_auction_view', params: {
+        'p_auction_id':  auctionId,
+        'p_viewer_uid':  viewerUid,
+        'p_device_type': deviceType,
+      });
+      if (result == null) return (null, false);
+      final rows = result as List<dynamic>;
+      if (rows.isEmpty) return (null, false);
+      final row = rows.first as Map<String, dynamic>;
+      return (row['view_id'] as String?, row['is_new_view'] as bool? ?? false);
+    } catch (_) {
+      return (null, false);
+    }
+  }
+
+  // ── END AUCTION VIEW ──────────────────────────────────────────────────────
+  // Stores view_duration_seconds for ML engagement analysis. Fire-and-forget.
+  Future<void> endAuctionView({
+    required String viewId,
+    required int durationSeconds,
+  }) async {
+    try {
+      await _client.rpc('end_auction_view', params: {
+        'p_view_id':          viewId,
+        'p_duration_seconds': durationSeconds,
+      });
+    } catch (_) {
+      // Non-critical; silently discard errors
+    }
+  }
+
   // ── ADMIN'S OWN AUCTIONS ──────────────────────────────────────────────────
   Future<List<AuctionModel>> getAdminAuctions(String adminUid) async {
     try {

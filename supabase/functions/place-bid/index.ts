@@ -111,16 +111,20 @@ serve(async (req) => {
     }
 
     const result = rpcResult as {
-      success:          boolean;
-      error?:           string;
-      code?:            string;
-      new_highest_bid?: number;
-      is_winning?:      boolean;
-      is_update?:       boolean;
-      prev_winner_uid?: string;
-      new_winner_uid?:  string;
-      item_name?:       string;
-      admin_uid?:       string;
+      success:             boolean;
+      error?:              string;
+      code?:               string;
+      new_highest_bid?:    number;
+      is_winning?:         boolean;
+      is_update?:          boolean;
+      prev_winner_uid?:    string;
+      new_winner_uid?:     string;
+      item_name?:          string;
+      admin_uid?:          string;
+      // Phase 1 ML behavioral features
+      bid_sequence?:       number;
+      bid_increment?:      number;
+      seconds_before_end?: number;
     };
 
     if (!result.success) {
@@ -160,10 +164,14 @@ serve(async (req) => {
     });
 
     return json({
-      success:         true,
-      new_highest_bid: result.new_highest_bid,
-      is_winning:      result.is_winning,
-      is_update:       result.is_update,
+      success:            true,
+      new_highest_bid:    result.new_highest_bid,
+      is_winning:         result.is_winning,
+      is_update:          result.is_update,
+      // Phase 1 ML behavioral features forwarded to Flutter
+      bid_sequence:       result.bid_sequence,
+      bid_increment:      result.bid_increment,
+      seconds_before_end: result.seconds_before_end,
     });
 
   } catch (err) {
