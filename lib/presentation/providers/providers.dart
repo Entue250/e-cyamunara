@@ -147,7 +147,13 @@ final updateAuctionUseCaseProvider = Provider<UpdateAuctionUseCase>((ref) {
   return UpdateAuctionUseCase(ref.watch(auctionRepositoryProvider));
 });
 
-/// Deletes an auction and removes its storage photos.
+/// Publishes a draft auction (status draft → active).
+/// Used by: manage_auctions_screen.dart
+final publishDraftUseCaseProvider = Provider<PublishDraftUseCase>((ref) {
+  return PublishDraftUseCase(ref.watch(auctionRepositoryProvider));
+});
+
+/// Deletes an auction. Hard-deletes if no bids; soft-deletes otherwise.
 /// Used by: manage_auctions_screen.dart
 final deleteAuctionUseCaseProvider = Provider<DeleteAuctionUseCase>((ref) {
   return DeleteAuctionUseCase(ref.watch(auctionRepositoryProvider));
