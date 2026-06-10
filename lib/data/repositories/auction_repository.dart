@@ -25,6 +25,7 @@ class AuctionRepository {
         .map((rows) {
           final now = DateTime.now();
           var auctions = rows
+              .where((r) => r['is_deleted'] != true)
               .map((r) => AuctionModel.fromMap(r))
               .where((a) =>
                   a.auctionStatus == 'active' && a.endDate.isAfter(now))
@@ -154,9 +155,35 @@ class AuctionRepository {
   }
 
   // ── DELETE AUCTION ────────────────────────────────────────────────────────
-  Future<void> deleteAuction(String auctionId) async {
+  // Returns true  → soft-deleted (bids existed; row is hidden, not removed)
+  // Returns false → hard-deleted (no bids; row + photos permanently removed)
+  Future<bool> deleteAuction(String auctionId, String deletedByUid) async {
     try {
-      // Fetch the auction first to get the admin UID needed for the storage path.
+      // Check whether any bids exist for this auction.
+      final bids = await _client
+          .from(SupabaseConstants.bidsTable)
+          .select('id')
+          .eq('auction_id', auctionId)
+          .limit(1);
+
+      if (bids.isNotEmpty) {
+        // Soft delete — preserve bid/winner history.
+        final now = DateTime.now().toIso8601String();
+        await _client
+            .from(SupabaseConstants.auctionsTable)
+            .update({
+              'is_deleted': true,
+              'deleted_at': now,
+              'deleted_by': deletedByUid,
+              'updated_at': now,
+            })
+            .eq('id', auctionId);
+        return true;
+      }
+
+      // Hard delete — clean up photos, then remove the row.
+      // The migration added ON DELETE CASCADE to notifications.auction_id,
+      // so all related notifications are removed automatically by the DB.
       AuctionModel? auction;
       try {
         auction = await getAuctionById(auctionId);
@@ -170,10 +197,15 @@ class AuctionRepository {
           .from(SupabaseConstants.auctionsTable)
           .delete()
           .eq('id', auctionId);
+      return false;
     } on PostgrestException catch (e) {
       throw mapPostgrestError(e);
     }
   }
+
+  // ── PUBLISH DRAFT ─────────────────────────────────────────────────────────
+  Future<void> publishDraft(String auctionId) =>
+      updateAuctionStatus(auctionId, SupabaseConstants.statusActive);
 
   // ── ADMIN'S OWN AUCTIONS ──────────────────────────────────────────────────
   Future<List<AuctionModel>> getAdminAuctions(String adminUid) async {
@@ -182,6 +214,7 @@ class AuctionRepository {
           .from(SupabaseConstants.auctionsTable)
           .select()
           .eq('posted_by_admin_uid', adminUid)
+          .eq('is_deleted', false)
           .order('created_at', ascending: false);
       return rows.map((r) => AuctionModel.fromMap(r)).toList();
     } on PostgrestException catch (e) {
