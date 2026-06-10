@@ -25,6 +25,7 @@ class SupabaseConstants {
   static const String districtsTable = 'districts';
   static const String appSettingsTable = 'app_settings';
   static const String notificationsTable = 'notifications';
+  static const String auctionAutoCloseLogsTable = 'auction_auto_close_logs';
 
   // ── Storage bucket names ──────────────────────────────────────────────────
   static const String auctionPhotosBucket = 'auction-photos';
@@ -43,6 +44,7 @@ class SupabaseConstants {
   static const String fnActivateUser = 'activate-user';
   static const String fnRegisterClient = 'register-client';
   static const String fnResetClientPassword = 'reset-client-password';
+  static const String fnAutoCloseAuctions = 'auto-close-auctions';
 
   // ── OneSignal (push notifications) ───────────────────────────────────────
   static String get oneSignalAppId => dotenv.env['ONESIGNAL_APP_ID'] ?? '';
