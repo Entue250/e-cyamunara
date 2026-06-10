@@ -304,10 +304,11 @@ class ManageAuctionCard extends StatelessWidget {
     required this.onClose,
     this.onEdit,
     this.onDelete,
+    this.onPublish,
   });
   final AuctionModel auction;
   final VoidCallback onViewBids, onClose;
-  final VoidCallback? onEdit, onDelete;
+  final VoidCallback? onEdit, onDelete, onPublish;
 
   @override
   Widget build(BuildContext context) {
@@ -445,6 +446,19 @@ class ManageAuctionCard extends StatelessWidget {
                       ),
                     ),
                     const Spacer(),
+                    if (status == 'draft') ...[
+                      IconButton(
+                        icon: const Icon(
+                          Icons.rocket_launch_outlined,
+                          color: AppColors.success,
+                          size: 20,
+                        ),
+                        tooltip: context.l10n.publishTooltip,
+                        padding: const EdgeInsets.all(4),
+                        constraints: const BoxConstraints(),
+                        onPressed: onPublish,
+                      ),
+                    ],
                     if (status == 'active') ...[
                       IconButton(
                         icon: const Icon(
