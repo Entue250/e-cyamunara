@@ -1702,12 +1702,13 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String publishConfirmMessage(String name, String id) {
-    return 'Publish "$name" (LOT #$id)?\n\nThis will make the auction live and visible to all clients. Bidding will begin immediately.';
+    return 'Publish \"$name\" (LOT #$id)?\n\nThis will make the auction live and visible to all clients. Bidding will begin immediately.';
   }
 
   @override
   String get auctionPublished => 'Auction published successfully!';
 
   @override
-  String get auctionSoftDeleted => 'Auction removed from listings (bid history preserved).';
+  String get auctionSoftDeleted =>
+      'Auction removed from listings (bid history preserved).';
 }
