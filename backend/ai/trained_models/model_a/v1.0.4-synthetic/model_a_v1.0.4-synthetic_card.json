@@ -1,0 +1,52 @@
+{
+  "model_name": "model_a",
+  "version": "v1.0.4-synthetic",
+  "task": "starting_price_regression",
+  "training_dataset": "synthetic_auctions_1.0",
+  "dataset_source": "synthetic",
+  "training_timestamp": "2026-06-11T16:05:27.881936+00:00",
+  "training_rows": 0,
+  "feature_set_version": "1.0",
+  "feature_count": 20,
+  "feature_names": [
+    "main_category",
+    "fuel_type",
+    "transmission",
+    "ownership_history",
+    "accident_history",
+    "insurance_status",
+    "brand",
+    "sub_category",
+    "region",
+    "condition",
+    "asset_age",
+    "auction_duration_hours",
+    "mileage",
+    "has_description",
+    "has_images",
+    "is_accident_history_known",
+    "is_insurance_status_known",
+    "is_mileage_known",
+    "is_manufacturing_year_known",
+    "starting_price"
+  ],
+  "metrics": {
+    "mae_rwf": 279650.577090199,
+    "rmse_rwf": 758716.9190145532,
+    "mape": 0.11576688508819982,
+    "median_ape": 0.102701640625,
+    "r2": 0.9534935131621666,
+    "r2_log": 0.9894139016359557
+  },
+  "acceptance": {
+    "passed": true,
+    "grade": "excellent"
+  },
+  "limitations": [
+    "Trained on synthetic data — may not reflect real RNP auction patterns.",
+    "Regional demand factors are modeled as fixed multipliers, not market data.",
+    "No seasonal effects captured.",
+    "Luxury segment (starting_price > 10M RWF) has wider prediction intervals."
+  ],
+  "intended_use": "Assist Rwanda National Police admins in setting appropriate starting prices for vehicle, motorcycle, and bicycle auctions."
+}
