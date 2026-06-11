@@ -87,7 +87,7 @@ class SplitConfig:
 # ---------------------------------------------------------------------------
 @dataclass(frozen=True)
 class PriceModelHyperparams:
-    """XGBoost hyper-parameters for Model A (starting price prediction).
+    """XGBoost hyper-parameters for Model A (market value estimation).
 
     All defaults represent a sensible starting point; values are expected to be
     tuned via cross-validation before a production release is promoted.
@@ -248,7 +248,7 @@ class BidProbabilityThresholds:
 class InferenceConfig:
     """Run-time parameters used by the model-serving layer."""
 
-    # How long (minutes) a price-suggestion response is cached on the client
+    # How long (minutes) a market value estimate response is cached on the client
     cache_ttl_minutes: int = 30
 
     # RWF threshold that separates standard from luxury auctions
