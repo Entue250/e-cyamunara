@@ -1,0 +1,7 @@
+{
+  "dataset_source": "synthetic",
+  "data_file": "D:\\LEVEL 3\\Semester II\\MOBILE APPLICATION\\ecyamunara\\backend\\ai\\data\\synthetic_auctions.csv",
+  "dataset_hash": "810924dd8ca10a0339bfd48f341a3a0c2c3d036dfdaa3b72c2f193eeae664f9c",
+  "feature_set_version": "1.0",
+  "training_timestamp": "2026-06-11T16:06:11.484794+00:00"
+}

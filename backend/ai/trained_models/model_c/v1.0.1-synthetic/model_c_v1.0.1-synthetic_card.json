@@ -1,0 +1,62 @@
+{
+  "model_name": "model_c",
+  "version": "v1.0.1-synthetic",
+  "task": "bid_probability_classification",
+  "training_dataset": "synthetic_auctions_1.0",
+  "dataset_source": "synthetic",
+  "training_timestamp": "2026-06-11T16:06:28.564070+00:00",
+  "training_rows": 0,
+  "feature_set_version": "1.0",
+  "feature_count": 30,
+  "feature_names": [
+    "main_category",
+    "fuel_type",
+    "transmission",
+    "ownership_history",
+    "accident_history",
+    "insurance_status",
+    "brand",
+    "sub_category",
+    "region",
+    "condition",
+    "asset_age",
+    "auction_duration_hours",
+    "mileage",
+    "has_description",
+    "has_images",
+    "is_accident_history_known",
+    "is_insurance_status_known",
+    "is_mileage_known",
+    "is_manufacturing_year_known",
+    "starting_price",
+    "total_bids",
+    "unique_bidder_count",
+    "views_count",
+    "bid_momentum",
+    "view_to_bid_ratio",
+    "time_to_first_bid_hours",
+    "days_until_close",
+    "bid_acceleration",
+    "is_first_bid_quick",
+    "price_tier"
+  ],
+  "metrics": {
+    "auc_roc": 1.0,
+    "pr_auc": 1.0,
+    "f1": 1.0,
+    "precision": 1.0,
+    "recall": 1.0,
+    "ece": 0.002268487277130286
+  },
+  "acceptance": {
+    "passed": true,
+    "grade": "excellent"
+  },
+  "limitations": [
+    "Trained on closed auctions only — active auctions have incomplete signals.",
+    "Calibrated via Platt scaling on a single validation split.",
+    "Class imbalance (many zero-bid auctions) requires threshold tuning for deployment.",
+    "Synthetic bidder behavior does not capture real user intent patterns."
+  ],
+  "intended_use": "Predict the probability that an auction will receive at least one bid, enabling admins to identify at-risk auctions requiring promotion or repricing."
+}
