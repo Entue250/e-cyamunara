@@ -112,7 +112,7 @@ CREATE POLICY client_read_auction_price_estimates
       SELECT 1
       FROM public.auctions a
       WHERE a.id = auction_id
-        AND a.status IN ('active', 'closed')
+        AND a.auction_status IN ('active', 'closed')
     )
   );
 
