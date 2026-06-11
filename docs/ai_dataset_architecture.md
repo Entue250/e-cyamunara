@@ -90,21 +90,24 @@
 
 ## ai_predictions Table
 
-Stores model inference outputs per auction. **Empty until Phase 3.**
+Stores ML inference outputs per auction. **Empty until Phase 4 inference pipeline is built.**
 
 | Column | Purpose |
 |--------|---------|
 | auction_id | Which auction this prediction covers |
-| model_version | Semantic version string (e.g. "v1.0.0") |
-| prediction_type | "price" / "winning_bid" / "interest_score" |
-| predicted_price | Estimated fair market value in RWF |
-| predicted_winning_bid | Predicted final winning amount |
-| predicted_probability | P(auction receives at least 1 bid) — range [0, 1] |
+| model_version | Semantic version string (e.g. "v1.0.4-synthetic") |
+| prediction_type | `"auction_price_estimate"` / `"winning_bid"` / `"bid_probability"` |
+| expected_auction_price | Model A: expected selling price in RWF (`auction_price_estimate` rows) |
+| value_signal | `"undervalued"` / `"fairly_priced"` / `"overpriced"` (derived from `starting_price / expected_auction_price`) |
+| value_ratio | `starting_price / expected_auction_price` numeric ratio |
+| starting_price_at_prediction | Admin-set `starting_price` captured at inference time (immutable snapshot) |
+| predicted_winning_bid | Model B: predicted final winning amount in RWF |
+| predicted_probability | Model C: P(auction receives ≥1 bid) — range [0, 1] |
 | confidence_score | Model confidence — range [0, 1] |
 | feature_snapshot | JSONB snapshot of features used at inference time |
 | created_at | Timestamp of prediction |
 
-**Security:** `service_role` only writes. Active `super_admins` only read.
+**Security:** `service_role` only writes (bypasses RLS). Active `super_admins` read all rows. Active clients read `auction_price_estimate` rows only for auctions with status `active` or `closed`.
 
 ---
 
