@@ -6,19 +6,20 @@
 --          Table is EMPTY until Phase 4 inference pipeline is built.
 --          This is PREPARATION ONLY — no prediction logic is implemented here.
 --
--- Model A (market_value):  estimated_market_value, value_signal, value_ratio columns.
--- Model B (winning_bid):   predicted_winning_bid column.
--- Model C (bid_probability): predicted_probability column.
+-- Model A (auction_price_estimate): expected_auction_price, value_signal, value_ratio columns.
+-- Model B (winning_bid):            predicted_winning_bid column.
+-- Model C (bid_probability):        predicted_probability column.
 --
 -- NOTE: Model A does NOT set or suggest the starting_price. starting_price is the
---       minimum allowed bid, set manually by region admins. Model A estimates fair
---       market value to help CLIENTS (bidders) assess whether an auction is
---       undervalued, fairly priced, or overpriced.
+--       minimum allowed bid, set manually by region admins. Model A estimates the
+--       expected auction selling price to help CLIENTS (bidders) assess whether an
+--       auction is undervalued, fairly priced, or overpriced relative to historical
+--       RNP auction outcomes.
 --
 -- Security:
 --   RLS enabled:
 --     - super_admins: full SELECT on all predictions
---     - active clients: SELECT on market_value predictions for auctions they can see
+--     - active clients: SELECT on auction_price_estimate predictions for auctions they can see
 --     - service_role bypasses RLS for INSERT (FastAPI inference layer)
 --
 -- Idempotency: CREATE TABLE IF NOT EXISTS, DROP/CREATE POLICY, CREATE INDEX IF NOT EXISTS.
@@ -45,10 +46,10 @@ CREATE TABLE IF NOT EXISTS public.ai_predictions (
   auction_id                  UUID         NOT NULL REFERENCES public.auctions(id) ON DELETE CASCADE,
   model_version               TEXT         NOT NULL,
   prediction_type             TEXT         NOT NULL
-                                CHECK (prediction_type IN ('market_value', 'winning_bid', 'bid_probability')),
+                                CHECK (prediction_type IN ('auction_price_estimate', 'winning_bid', 'bid_probability')),
 
-  -- Model A: market value estimation
-  estimated_market_value      NUMERIC      CHECK (estimated_market_value IS NULL OR estimated_market_value >= 0),
+  -- Model A: auction price estimate (expected selling price based on historical RNP auction outcomes)
+  expected_auction_price      NUMERIC      CHECK (expected_auction_price IS NULL OR expected_auction_price >= 0),
   value_signal                TEXT         CHECK (value_signal IS NULL OR value_signal IN ('undervalued', 'fairly_priced', 'overpriced')),
   value_ratio                 NUMERIC      CHECK (value_ratio IS NULL OR value_ratio >= 0),
   starting_price_at_prediction NUMERIC     CHECK (starting_price_at_prediction IS NULL OR starting_price_at_prediction >= 0),
@@ -90,17 +91,17 @@ CREATE POLICY super_admin_read_ai_predictions
     )
   );
 
--- Clients: read market_value predictions for auctions that are published (visible to them)
--- This allows the Flutter AuctionDetailScreen to display estimated_market_value,
+-- Clients: read auction_price_estimate predictions for auctions that are published (visible to them).
+-- This allows the Flutter AuctionDetailScreen to display expected_auction_price,
 -- value_signal, and value_ratio to bidders without exposing winning_bid or
 -- bid_probability predictions.
-DROP POLICY IF EXISTS client_read_market_value_predictions ON public.ai_predictions;
-CREATE POLICY client_read_market_value_predictions
+DROP POLICY IF EXISTS client_read_auction_price_estimates ON public.ai_predictions;
+CREATE POLICY client_read_auction_price_estimates
   ON public.ai_predictions
   FOR SELECT
   TO authenticated
   USING (
-    prediction_type = 'market_value'
+    prediction_type = 'auction_price_estimate'
     AND EXISTS (
       SELECT 1
       FROM public.users u
@@ -144,7 +145,7 @@ CREATE INDEX IF NOT EXISTS idx_ai_predictions_type
 -- WHERE table_schema = 'public' AND table_name = 'ai_predictions'
 -- ORDER BY ordinal_position;
 -- Expected: 14 columns (id, auction_id, model_version, prediction_type,
---   estimated_market_value, value_signal, value_ratio, starting_price_at_prediction,
+--   expected_auction_price, value_signal, value_ratio, starting_price_at_prediction,
 --   predicted_winning_bid, predicted_probability, confidence_score,
 --   feature_snapshot, created_at — note: 13 listed + id = 14 total)
 
@@ -155,7 +156,7 @@ CREATE INDEX IF NOT EXISTS idx_ai_predictions_type
 -- V3: Two policies exist:
 -- SELECT policyname, cmd FROM pg_policies WHERE tablename = 'ai_predictions';
 -- Expected: 2 rows — super_admin_read_ai_predictions (SELECT),
---                     client_read_market_value_predictions (SELECT)
+--                     client_read_auction_price_estimates (SELECT)
 
 -- V4: Three indexes exist (plus PK):
 -- SELECT indexname FROM pg_indexes WHERE tablename = 'ai_predictions'
@@ -163,14 +164,15 @@ CREATE INDEX IF NOT EXISTS idx_ai_predictions_type
 -- Expected: ai_predictions_pkey, idx_ai_predictions_auction_type_created,
 --           idx_ai_predictions_model_version, idx_ai_predictions_type
 
--- V5: prediction_type CHECK rejects old value:
+-- V5: prediction_type CHECK rejects old values:
 -- INSERT INTO public.ai_predictions (auction_id, model_version, prediction_type, feature_snapshot)
 -- VALUES (gen_random_uuid(), 'v-test', 'price', '{}');
 -- Expected: ERROR violates check constraint "ai_predictions_prediction_type_check"
+-- (also test 'market_value' — must also be rejected)
 
--- V6: prediction_type CHECK accepts new value:
+-- V6: prediction_type CHECK accepts correct value:
 -- INSERT INTO public.ai_predictions (auction_id, model_version, prediction_type, feature_snapshot)
--- VALUES (<valid_auction_uuid>, 'v1.0.4-synthetic', 'market_value', '{}');
+-- VALUES (<valid_auction_uuid>, 'v1.0.4-synthetic', 'auction_price_estimate', '{}');
 -- Expected: 1 row inserted (via service_role)
 
 -- ============================================================
