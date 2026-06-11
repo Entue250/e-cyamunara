@@ -15,17 +15,22 @@ from training.preprocessing.feature_definitions import (
 
 KNOWN_MODELS: dict[str, dict] = {
     "model_a": {
-        "task": "starting_price_regression",
+        "task": "market_value_regression",
         "feature_names": MODEL_A_FEATURES,
         "intended_use": (
-            "Assist Rwanda National Police admins in setting appropriate "
-            "starting prices for vehicle, motorcycle, and bicycle auctions."
+            "Estimate the fair market value of a vehicle at auction time, helping "
+            "RNP clients (bidders) assess whether a listed auction is undervalued, "
+            "fairly priced, or overpriced relative to comparable historical sales. "
+            "Model A does NOT suggest or influence the admin-defined starting price — "
+            "the starting price is the minimum allowed bid, set manually by region admins."
         ),
         "limitations": [
-            "Trained on synthetic data — may not reflect real RNP auction patterns.",
-            "Regional demand factors are modeled as fixed multipliers, not market data.",
-            "No seasonal effects captured.",
-            "Luxury segment (starting_price > 10M RWF) has wider prediction intervals.",
+            "Trained on synthetic data — may not reflect real RNP auction market prices.",
+            "Regional demand factors are modeled as fixed multipliers, not live market data.",
+            "No seasonal price effects captured.",
+            "High-value segment (vehicle price > 10M RWF) has wider prediction intervals.",
+            "starting_price is an input feature: estimates are anchored to the admin floor "
+            "price and may underestimate value if the starting price is set unusually low.",
         ],
     },
     "model_b": {
