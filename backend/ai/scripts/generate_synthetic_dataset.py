@@ -155,7 +155,7 @@ def _starting_price(
         price *= _mileage_factor(mileage)
     price *= REGION_DEMAND[region]
     price *= rng.uniform(0.90, 1.10)
-    return float(round(price / 50_000) * 50_000)
+    return float(max(50_000, round(price / 50_000) * 50_000))
 
 
 def generate_auctions(n: int, rng: np.random.Generator) -> pd.DataFrame:
