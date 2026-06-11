@@ -602,5 +602,10 @@ $RECYCLE.BIN/
 
 .claude
 
+# AI scripts data
+backend/ai/data/*.csv
+backend/ai/data/*.parquet
+backend/ai/data/*.json
+backend/ai/.env
 
 # End of https://www.toptal.com/developers/gitignore/api/flutter,dart,vs,visualstudiocode,windows,dotenv,android,web,linux,macos
