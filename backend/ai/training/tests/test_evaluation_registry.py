@@ -212,7 +212,7 @@ def test_generate_model_card_model_a_task():
             acceptance_result=acceptance,
         )
         card = reg.generate_model_card(entry)
-        assert card["task"] == "starting_price_regression"
+        assert card["task"] == "market_value_regression"
 
 
 def test_save_model_card_creates_file():
