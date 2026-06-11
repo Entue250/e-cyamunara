@@ -1,0 +1,60 @@
+{
+  "model_name": "model_b",
+  "version": "v1.0.0-synthetic",
+  "task": "winning_bid_regression",
+  "training_dataset": "synthetic_auctions_1.0",
+  "dataset_source": "synthetic",
+  "training_timestamp": "2026-06-11T13:36:30.864565+00:00",
+  "training_rows": 57459,
+  "feature_set_version": "1.0",
+  "feature_count": 30,
+  "feature_names": [
+    "main_category",
+    "fuel_type",
+    "transmission",
+    "ownership_history",
+    "accident_history",
+    "insurance_status",
+    "brand",
+    "sub_category",
+    "region",
+    "condition",
+    "asset_age",
+    "auction_duration_hours",
+    "mileage",
+    "has_description",
+    "has_images",
+    "is_accident_history_known",
+    "is_insurance_status_known",
+    "is_mileage_known",
+    "is_manufacturing_year_known",
+    "starting_price",
+    "total_bids",
+    "unique_bidder_count",
+    "views_count",
+    "bid_momentum",
+    "view_to_bid_ratio",
+    "time_to_first_bid_hours",
+    "days_until_close",
+    "bid_acceleration",
+    "is_first_bid_quick",
+    "price_tier"
+  ],
+  "metrics": {
+    "mae_rwf": 272363.2245121731,
+    "rmse_rwf": 733777.6627579296,
+    "mape": 0.11472885595799766,
+    "r2": 0.9565006296856788
+  },
+  "acceptance": {
+    "passed": true,
+    "grade": "excellent"
+  },
+  "limitations": [
+    "Trained on synthetic data with simulated bidding behavior.",
+    "Requires at least some engagement signal for reliable predictions.",
+    "Bidding spikes near auction close are partially captured but noisy.",
+    "Does not account for repeat bidder behavior (no bidder history modeled)."
+  ],
+  "intended_use": "Estimate the expected final winning bid for an active auction, assisting RNP clients in bid strategy and admins in reserve price decisions."
+}

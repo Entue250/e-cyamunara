@@ -1,0 +1,30 @@
+{
+  "model": "model_b",
+  "metrics": {
+    "mae_rwf": 272381.1955867581,
+    "rmse_rwf": 733194.3101619632,
+    "mape": 0.11498389341441856,
+    "r2": 0.9565697661152672
+  },
+  "thresholds": {
+    "mae_rwf_min": 1000000.0,
+    "mae_rwf_target": 600000.0,
+    "mae_rwf_excellent": 300000.0,
+    "rmse_rwf_min": 3000000.0,
+    "rmse_rwf_target": 1500000.0,
+    "rmse_rwf_excellent": 750000.0,
+    "mape_min": 0.3,
+    "mape_target": 0.2,
+    "mape_excellent": 0.12,
+    "r2_min": 0.6,
+    "r2_target": 0.78,
+    "r2_excellent": 0.88,
+    "premium_mape_min": 0.22
+  },
+  "passed": true,
+  "failures": [],
+  "best_iteration": 145,
+  "train_rows": 57459,
+  "val_rows": 6384,
+  "test_rows": 7093
+}
