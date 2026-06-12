@@ -1708,12 +1708,13 @@ class AppLocalizationsRw extends AppLocalizations {
 
   @override
   String publishConfirmMessage(String name, String id) {
-    return 'Tangaza "$name" (LOT #$id)?\n\nIbi bizatera isoko kugaragara kuri bakiriya bose. Gutanga ibiciro bizatangira ako kanya.';
+    return 'Tangaza \"$name\" (LOT #$id)?\n\nIbi bizatera isoko kugaragara kuri bakiriya bose. Gutanga ibiciro bizatangira ako kanya.';
   }
 
   @override
   String get auctionPublished => 'Isoko ryatangazwa neza!';
 
   @override
-  String get auctionSoftDeleted => 'Isoko ryavanwe ku rutonde (amateka y\'ibiciro abitswe).';
+  String get auctionSoftDeleted =>
+      'Isoko ryavanwe ku rutonde (amateka y\'ibiciro abitswe).';
 }
