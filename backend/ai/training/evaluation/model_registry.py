@@ -13,6 +13,20 @@ from training.preprocessing.feature_definitions import (
     MODEL_A_FEATURES, MODEL_B_FEATURES, MODEL_C_FEATURES, FEATURE_SET_VERSION,
 )
 
+# All valid lifecycle statuses a model version can hold.
+# FastAPI and promotion scripts import this constant to validate transitions.
+VALID_STATUSES: frozenset[str] = frozenset({
+    "registered",   # passed acceptance gate; not yet explicitly promoted
+    "candidate",    # in shadow testing — real predictions generated silently
+    "active",       # currently serving predictions; returned by get_active()
+    "deprecated",   # superseded by a newer active version; kept for audit
+    "rolled_back",  # manually rolled back from active; treated as deprecated
+    "rejected",     # failed acceptance gate; not eligible for promotion
+})
+
+# Statuses that represent a "live" version eligible for deprecation when superseded.
+_DEPRECIABLE_STATUSES: frozenset[str] = frozenset({"registered", "candidate", "active"})
+
 KNOWN_MODELS: dict[str, dict] = {
     "model_a": {
         "task": "market_value_regression",
@@ -158,7 +172,9 @@ class ModelRegistry:
         model_block = models.setdefault(entry.model_name, {"active": None, "versions": {}})
         model_block["versions"][entry.version] = asdict(entry)
         if model_block["active"] is None and entry.acceptance_passed:
+            # First passing version for this model — auto-promote to active.
             model_block["active"] = entry.version
+            model_block["versions"][entry.version]["status"] = "active"
         self._save(reg)
 
     def reject(self, model_name: str, version: str, reason: str) -> None:
@@ -172,13 +188,22 @@ class ModelRegistry:
         self._save(reg)
 
     def set_active(self, model_name: str, version: str) -> None:
-        """Promote a version to active for the given model."""
+        """Promote version to active; deprecate the previous active version."""
         reg = self._load()
         model_block = reg.get("models", {}).get(model_name, {})
         if not model_block:
             raise KeyError(f"Model {model_name!r} not found in registry.")
-        if version not in model_block.get("versions", {}):
+        versions = model_block.get("versions", {})
+        if version not in versions:
             raise KeyError(f"Version {version!r} of {model_name!r} not found.")
+        # Deprecate previous active version when it differs from the incoming one.
+        current_active = model_block.get("active")
+        if current_active and current_active != version:
+            prev = versions.get(current_active, {})
+            if prev.get("status") in _DEPRECIABLE_STATUSES:
+                versions[current_active]["status"] = "deprecated"
+        # Promote new version and update pointer.
+        versions[version]["status"] = "active"
         model_block["active"] = version
         self._save(reg)
 
