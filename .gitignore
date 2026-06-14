@@ -77,6 +77,9 @@ doc/api/
 # dotenv environment variables file
 .env*
 env*
+# Re-allow committed example templates (overrides .env* above)
+!.env.example
+!**/.env.example
 
 ### dotenv ###
 
