@@ -6,12 +6,12 @@ import time
 from typing import Any, Optional
 
 import numpy as np
-import pandas as pd
 from fastapi import APIRouter, HTTPException, Request
 
+from ..deps import get_loader, get_store
+from ..df_utils import build_inference_df
 from ..error_codes import ErrorCode
 from ..feature_validator import validate_model_bc
-from ..deps import get_loader, get_store
 from ..schemas import ModelBRequest, ModelBResponse
 
 router = APIRouter(tags=["predict"])
@@ -19,7 +19,7 @@ router = APIRouter(tags=["predict"])
 
 def _run_inference(loaded, features_dict: dict) -> float:
     """Return predicted winning bid in RWF."""
-    df = pd.DataFrame([features_dict])
+    df = build_inference_df(features_dict)
     X = loaded.pipeline.transform(df)
     raw_log = loaded.xgb_model.predict(X)
     return float(np.expm1(raw_log[0]))

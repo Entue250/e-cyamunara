@@ -5,12 +5,12 @@ from __future__ import annotations
 import time
 from typing import Any, Optional
 
-import pandas as pd
 from fastapi import APIRouter, HTTPException, Request
 
+from ..deps import get_loader, get_store
+from ..df_utils import build_inference_df
 from ..error_codes import ErrorCode
 from ..feature_validator import validate_model_bc
-from ..deps import get_loader, get_store
 from ..schemas import ModelCRequest, ModelCResponse
 
 router = APIRouter(tags=["predict"])
@@ -18,7 +18,7 @@ router = APIRouter(tags=["predict"])
 
 def _run_inference(loaded, features_dict: dict) -> float:
     """Return calibrated bid probability [0, 1]."""
-    df = pd.DataFrame([features_dict])
+    df = build_inference_df(features_dict)
     X = loaded.pipeline.transform(df)
     # PlattScaler.predict_proba returns shape (n, 2); column 1 is P(bid)
     proba = loaded.calibrated.predict_proba(X)

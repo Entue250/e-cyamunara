@@ -6,12 +6,12 @@ import time
 from typing import Any, Optional
 
 import numpy as np
-import pandas as pd
 from fastapi import APIRouter, HTTPException, Request
 
+from ..deps import get_loader, get_store
+from ..df_utils import build_inference_df
 from ..error_codes import ErrorCode
 from ..feature_validator import validate_model_a
-from ..deps import get_loader, get_store
 from ..schemas import ModelARequest, ModelAResponse
 
 router = APIRouter(tags=["predict"])
@@ -30,7 +30,7 @@ def _value_signal(ratio: float) -> str:
 
 def _run_inference(loaded, features_dict: dict) -> tuple[float, str, float]:
     """Return (predicted_price_rwf, value_signal, value_ratio)."""
-    df = pd.DataFrame([features_dict])
+    df = build_inference_df(features_dict)
     X = loaded.pipeline.transform(df)
     raw_log = loaded.xgb_model.predict(X)
     price = float(np.expm1(raw_log[0]))
