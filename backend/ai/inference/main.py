@@ -1,4 +1,4 @@
-"""FastAPI inference service — Phase 4A real prediction endpoints."""
+"""FastAPI inference service — Phase 6 MLOps inference + lifecycle service."""
 
 from __future__ import annotations
 
@@ -10,6 +10,7 @@ from typing import Any
 from fastapi import FastAPI
 
 from .config import settings
+from .job_store import JobStore
 from .model_loader import ModelLoader
 from .prediction_store import NullPredictionStore, PredictionStore
 
@@ -69,6 +70,7 @@ async def _lifespan(app: FastAPI):
 
     app.state.loader = loader
     app.state.store = store
+    app.state.job_store = JobStore()
     log.info("Inference service ready — all models loaded")
     yield
     log.info("Inference service shutting down")
@@ -92,11 +94,12 @@ def create_app(
 
     application = FastAPI(
         title="E-CYAMUNARA AI Inference",
-        version="4.0.0",
+        version="6.0.0",
         description=(
-            "Phase 4A real-model inference service. "
-            "Predictions are stored with prediction_source='real', model_stage='shadow' "
-            "and are NOT visible to clients until production promotion."
+            "Phase 6 MLOps inference service. "
+            "Provides real XGBoost predictions (prediction_source='real', model_stage='shadow'), "
+            "business-friendly URL aliases, retraining orchestration, and model lifecycle management. "
+            "Predictions are NOT visible to clients until production promotion."
         ),
         lifespan=lifespan_fn,
     )
@@ -105,14 +108,22 @@ def create_app(
     if loader is not None:
         application.state.loader = loader
         application.state.store = store if store is not None else NullPredictionStore()
+        application.state.job_store = JobStore()
 
-    from .routes import health, models, predict_a, predict_b, predict_c  # noqa: PLC0415
+    from .routes import (  # noqa: PLC0415
+        health, models,
+        predict_a, predict_b, predict_c,
+        predict_aliases, retrain, lifecycle,
+    )
 
     application.include_router(health.router)
     application.include_router(models.router)
     application.include_router(predict_a.router)
     application.include_router(predict_b.router)
     application.include_router(predict_c.router)
+    application.include_router(predict_aliases.router)
+    application.include_router(retrain.router)
+    application.include_router(lifecycle.router)
 
     return application
 
