@@ -147,3 +147,91 @@ class ModelsActiveResponse(BaseModel):
     model_a: VersionInfo
     model_b: VersionInfo
     model_c: VersionInfo
+
+
+# ---------------------------------------------------------------------------
+# Phase 6 — Retraining
+# ---------------------------------------------------------------------------
+
+class RetrainRequest(BaseModel):
+    model_name: str = Field(
+        description="'model_a', 'model_b', 'model_c', or 'all'",
+        pattern=r"^(model_a|model_b|model_c|all)$",
+    )
+    datasource: str = Field(
+        default="synthetic",
+        description="'synthetic' or 'real'",
+        pattern=r"^(synthetic|real)$",
+    )
+    data_path: Optional[str] = Field(
+        default=None,
+        description="Absolute path to a pre-exported CSV (skips Supabase export)",
+    )
+
+
+class RetrainResponse(BaseModel):
+    job_id: str
+    status: str
+    model_name: str
+    datasource: str
+    message: str
+
+
+class TrainingJobStatus(BaseModel):
+    job_id: str
+    model_name: str
+    datasource: str
+    status: str
+    elapsed_seconds: Optional[float] = None
+    result: Optional[dict[str, Any]] = None
+    error: Optional[str] = None
+
+
+# ---------------------------------------------------------------------------
+# Phase 6 — Lifecycle management
+# ---------------------------------------------------------------------------
+
+class PromoteRequest(BaseModel):
+    version: str = Field(description="Version string to promote, e.g. 'v1.0.4-synthetic'")
+
+
+class PromoteResponse(BaseModel):
+    model_name: str
+    promoted_version: str
+    previous_version: Optional[str]
+    message: str
+
+
+class RollbackResponse(BaseModel):
+    model_name: str
+    rolled_back_from: str
+    rolled_back_to: str
+    message: str
+
+
+class ModelVersionInfo(BaseModel):
+    version: str
+    status: str
+    acceptance_grade: str
+    training_rows: int
+    metrics: dict[str, Any]
+    training_timestamp: str
+    dataset_source: str
+
+
+class ModelHistoryResponse(BaseModel):
+    model_name: str
+    active_version: Optional[str]
+    versions: list[ModelVersionInfo]
+
+
+class PromotionCandidate(BaseModel):
+    model_name: str
+    version: str
+    acceptance_grade: str
+    metrics: dict[str, Any]
+    training_timestamp: str
+
+
+class PromotionCandidatesResponse(BaseModel):
+    candidates: list[PromotionCandidate]
