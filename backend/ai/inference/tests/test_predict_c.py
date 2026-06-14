@@ -49,8 +49,8 @@ def test_predict_c_stores_prediction(client_c, mock_store):
     assert row["prediction_type"] == "bid_probability"
     assert row["prediction_source"] == "real"
     assert row["model_stage"] == "shadow"
-    assert 0.0 <= row["predicted_value"] <= 1.0
-    assert row["value_signal"] is None
+    assert 0.0 <= row["predicted_probability"] <= 1.0
+    assert "value_signal" not in row
 
 
 def test_predict_c_missing_region(client_c):

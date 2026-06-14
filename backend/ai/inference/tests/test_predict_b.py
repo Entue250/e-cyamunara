@@ -38,11 +38,11 @@ def test_predict_b_stores_prediction(client_b, mock_store):
     assert resp.status_code == 200
     assert mock_store.store.called
     row = mock_store.store.call_args[0][0]
-    assert row["prediction_type"] == "winning_bid_prediction"
+    assert row["prediction_type"] == "winning_bid"
     assert row["prediction_source"] == "real"
     assert row["model_stage"] == "shadow"
-    assert row["value_signal"] is None
-    assert row["value_ratio"] is None
+    assert "predicted_winning_bid" in row
+    assert "value_signal" not in row
 
 
 def test_predict_b_expm1_transform_applied(client_b):

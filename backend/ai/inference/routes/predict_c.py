@@ -37,12 +37,9 @@ def _build_store_row(
         "auction_id": auction_id,
         "model_version": loaded.version,
         "prediction_type": "bid_probability",
-        "predicted_value": probability,
+        "predicted_probability": probability,
         "confidence_score": confidence,
         "feature_snapshot": features_dict,
-        "value_signal": None,
-        "value_ratio": None,
-        "metadata": {"inference_ms": inference_ms},
         "prediction_source": "real",
         "model_stage": "shadow",
     }

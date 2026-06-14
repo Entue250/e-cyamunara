@@ -36,13 +36,10 @@ def _build_store_row(
     return {
         "auction_id": auction_id,
         "model_version": loaded.version,
-        "prediction_type": "winning_bid_prediction",
-        "predicted_value": winning_bid,
+        "prediction_type": "winning_bid",
+        "predicted_winning_bid": winning_bid,
         "confidence_score": confidence,
         "feature_snapshot": features_dict,
-        "value_signal": None,
-        "value_ratio": None,
-        "metadata": {"inference_ms": inference_ms},
         "prediction_source": "real",
         "model_stage": "shadow",
     }
