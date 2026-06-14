@@ -32,6 +32,7 @@ from typing import Literal
 
 import numpy as np
 from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
+from sklearn.impute import SimpleImputer
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import (
     average_precision_score,
@@ -227,6 +228,10 @@ def compare_regression(
     )
 
     print(f"  Training RF challenger for {model_name}...")
+    # RF doesn't natively handle NaN — impute before fitting
+    imputer = SimpleImputer(strategy="median")
+    X_train_imp = imputer.fit_transform(X_train)
+    X_test_imp = imputer.transform(X_test)
     rf = RandomForestRegressor(
         n_estimators=n_estimators,
         max_depth=12,
@@ -234,8 +239,8 @@ def compare_regression(
         n_jobs=-1,
         random_state=random_state,
     )
-    rf.fit(X_train, y_train_log)
-    rf_pred_log = rf.predict(X_test)
+    rf.fit(X_train_imp, y_train_log)
+    rf_pred_log = rf.predict(X_test_imp)
     rf_pred_rwf = np.expm1(rf_pred_log)
     rf_metrics = _regression_metrics(y_test_rwf, rf_pred_rwf, y_test_log, rf_pred_log)
 
@@ -286,8 +291,11 @@ def compare_classification(
 
     challengers: list[ModelResult] = []
 
-    # Challenger 1 — Random Forest
+    # Challenger 1 — Random Forest (impute NaN — RF doesn't handle NaN natively)
     print(f"  Training RF classifier challenger for {model_name}...")
+    rf_imputer = SimpleImputer(strategy="median")
+    X_train_rf = rf_imputer.fit_transform(X_train)
+    X_test_rf = rf_imputer.transform(X_test)
     rf = RandomForestClassifier(
         n_estimators=n_estimators,
         max_depth=10,
@@ -295,8 +303,8 @@ def compare_classification(
         n_jobs=-1,
         random_state=random_state,
     )
-    rf.fit(X_train, y_train)
-    rf_prob = rf.predict_proba(X_test)[:, 1]
+    rf.fit(X_train_rf, y_train)
+    rf_prob = rf.predict_proba(X_test_rf)[:, 1]
     challengers.append(
         ModelResult(
             label="RandomForest (challenger A)",
@@ -304,11 +312,14 @@ def compare_classification(
         )
     )
 
-    # Challenger 2 — Logistic Regression
+    # Challenger 2 — Logistic Regression (requires finite inputs; impute NaNs)
     print(f"  Training LR challenger for {model_name}...")
-    lr = LogisticRegression(max_iter=1_000, C=1.0, random_state=random_state, n_jobs=-1)
-    lr.fit(X_train, y_train)
-    lr_prob = lr.predict_proba(X_test)[:, 1]
+    imputer = SimpleImputer(strategy="median")
+    X_train_lr = imputer.fit_transform(X_train)
+    X_test_lr = imputer.transform(X_test)
+    lr = LogisticRegression(max_iter=1_000, C=1.0, random_state=random_state)
+    lr.fit(X_train_lr, y_train)
+    lr_prob = lr.predict_proba(X_test_lr)[:, 1]
     challengers.append(
         ModelResult(
             label="LogisticRegression (challenger B)",
