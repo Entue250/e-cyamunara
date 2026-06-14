@@ -89,3 +89,92 @@ LIMIT 10;
 --   SELECT cron.unschedule('close-auctions');
 --   SELECT cron.unschedule('cleanup-notifications');
 -- =============================================================================
+
+
+-- =============================================================================
+-- PHASE 4B — Shadow Mode Prediction Pipeline (added 2026-06-12)
+-- Deploy these three Edge Functions first, then run the SQL below:
+--   supabase functions deploy generate-auction-price-estimate
+--   supabase functions deploy compute-prediction-comparison
+--   supabase functions deploy collect-ai-shadow-metrics
+-- Replace YOUR_SERVICE_ROLE_KEY with your actual key before running.
+-- =============================================================================
+
+-- ── Step A: Remove any existing Phase 4B jobs (idempotent re-run safety) ─────
+SELECT cron.unschedule('generate-auction-price-estimate')
+WHERE EXISTS (
+  SELECT 1 FROM cron.job WHERE jobname = 'generate-auction-price-estimate'
+);
+
+SELECT cron.unschedule('compute-prediction-comparison')
+WHERE EXISTS (
+  SELECT 1 FROM cron.job WHERE jobname = 'compute-prediction-comparison'
+);
+
+SELECT cron.unschedule('collect-ai-shadow-metrics')
+WHERE EXISTS (
+  SELECT 1 FROM cron.job WHERE jobname = 'collect-ai-shadow-metrics'
+);
+
+-- ── Step B: Generate synthetic predictions for active auctions (hourly) ───────
+-- Runs at the top of every hour. Skips auctions already predicted today.
+-- Shadow mode flag ai.shadow_mode_enabled is checked inside the function.
+SELECT cron.schedule(
+  'generate-auction-price-estimate',
+  '0 * * * *',
+  $$
+    SELECT net.http_post(
+      url     := 'https://ltpcbsapeshskdnvtlru.supabase.co/functions/v1/generate-auction-price-estimate',
+      headers := '{"Authorization":"Bearer YOUR_SERVICE_ROLE_KEY","Content-Type":"application/json"}'::jsonb,
+      body    := '{}'::jsonb
+    )
+  $$
+);
+
+-- ── Step C: Compare predictions vs actual outcomes (every 10 minutes) ─────────
+-- Finds closed auctions in the last 48 hours with no comparison row yet.
+-- ON CONFLICT (auction_id) safety net prevents double-writes.
+SELECT cron.schedule(
+  'compute-prediction-comparison',
+  '*/10 * * * *',
+  $$
+    SELECT net.http_post(
+      url     := 'https://ltpcbsapeshskdnvtlru.supabase.co/functions/v1/compute-prediction-comparison',
+      headers := '{"Authorization":"Bearer YOUR_SERVICE_ROLE_KEY","Content-Type":"application/json"}'::jsonb,
+      body    := '{}'::jsonb
+    )
+  $$
+);
+
+-- ── Step D: Collect daily shadow metrics (02:00 UTC = 04:00 Kigali) ───────────
+-- Aggregates yesterday's prediction events, rolling MAPE, and coverage.
+-- Upserts on metric_date — safe to re-trigger if the 02:00 job ever fails.
+SELECT cron.schedule(
+  'collect-ai-shadow-metrics',
+  '0 2 * * *',
+  $$
+    SELECT net.http_post(
+      url     := 'https://ltpcbsapeshskdnvtlru.supabase.co/functions/v1/collect-ai-shadow-metrics',
+      headers := '{"Authorization":"Bearer YOUR_SERVICE_ROLE_KEY","Content-Type":"application/json"}'::jsonb,
+      body    := '{}'::jsonb
+    )
+  $$
+);
+
+-- ── Step E: Verify all 5 jobs are active ─────────────────────────────────────
+SELECT jobid, jobname, schedule, active
+FROM cron.job
+ORDER BY jobname;
+-- Expected 5 rows:
+--   cleanup-notifications          0 22 * * 0
+--   close-auctions                 */5 * * * *
+--   collect-ai-shadow-metrics      0 2 * * *
+--   compute-prediction-comparison  */10 * * * *
+--   generate-auction-price-estimate 0 * * * *
+
+-- =============================================================================
+-- PHASE 4B ROLLBACK (remove Phase 4B jobs only):
+--   SELECT cron.unschedule('generate-auction-price-estimate');
+--   SELECT cron.unschedule('compute-prediction-comparison');
+--   SELECT cron.unschedule('collect-ai-shadow-metrics');
+-- =============================================================================
