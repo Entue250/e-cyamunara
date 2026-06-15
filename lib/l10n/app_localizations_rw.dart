@@ -1717,4 +1717,28 @@ class AppLocalizationsRw extends AppLocalizations {
   @override
   String get auctionSoftDeleted =>
       'Isoko ryavanwe ku rutonde (amateka y\'ibiciro abitswe).';
+
+  @override
+  String get aiInsights => 'Ubushishozi bwa AI';
+
+  @override
+  String get aiValueSignalUnder => 'Igiciro cyoroheje';
+
+  @override
+  String get aiValueSignalFair => 'Igiciro gikwiriye';
+
+  @override
+  String get aiValueSignalOver => 'Igiciro kirenzeho';
+
+  @override
+  String get aiEstMarketValue => 'Igiciro ku isoko';
+
+  @override
+  String get aiPredictedWinBid => 'Igiciro gishoboka ko ari cyo kizatsinda';
+
+  @override
+  String get aiWinProbability => '% yo gutsinda';
+
+  @override
+  String get aiAtLeast => 'nibura';
 }
