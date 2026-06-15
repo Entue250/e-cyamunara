@@ -29,6 +29,7 @@ import '../../../core/utils/date_notification_helpers.dart';
 import '../../../core/utils/validators.dart';
 import '../../app_router.dart';
 import 'client_providers.dart';
+import 'widgets/auction_ai_insights_panel.dart';
 
 class AuctionDetailScreen extends ConsumerStatefulWidget {
   const AuctionDetailScreen({super.key, required this.auctionId});
@@ -430,6 +431,12 @@ class _AuctionDetailScreenState extends ConsumerState<AuctionDetailScreen> {
                       ),
 
                       const SizedBox(height: 20),
+
+                      // ── AI Insights Panel ──────────────────────────────────
+                      AuctionAiInsightsPanel(
+                        auctionId: auction.auctionId,
+                        auction: auction,
+                      ),
 
                       // ── Bid / update button ────────────────────────────────
                       if (!isExpired && !isClosed)
