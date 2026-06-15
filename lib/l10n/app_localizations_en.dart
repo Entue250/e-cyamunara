@@ -1711,4 +1711,28 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get auctionSoftDeleted =>
       'Auction removed from listings (bid history preserved).';
+
+  @override
+  String get aiInsights => 'AI Insights';
+
+  @override
+  String get aiValueSignalUnder => 'Undervalued';
+
+  @override
+  String get aiValueSignalFair => 'Fair Value';
+
+  @override
+  String get aiValueSignalOver => 'Overvalued';
+
+  @override
+  String get aiEstMarketValue => 'Est. market value';
+
+  @override
+  String get aiPredictedWinBid => 'Likely winning bid';
+
+  @override
+  String get aiWinProbability => '% chance to win';
+
+  @override
+  String get aiAtLeast => 'at least';
 }
