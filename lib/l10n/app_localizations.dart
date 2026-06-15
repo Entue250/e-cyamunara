@@ -3289,6 +3289,54 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Auction removed from listings (bid history preserved).'**
   String get auctionSoftDeleted;
+
+  /// AI Insights panel title shown above the price/bid analysis card
+  ///
+  /// In en, this message translates to:
+  /// **'AI Insights'**
+  String get aiInsights;
+
+  /// Signal badge: auction starting price is below AI-estimated market value — good deal for buyer
+  ///
+  /// In en, this message translates to:
+  /// **'Undervalued'**
+  String get aiValueSignalUnder;
+
+  /// Signal badge: starting price is close to AI-estimated market value
+  ///
+  /// In en, this message translates to:
+  /// **'Fair Value'**
+  String get aiValueSignalFair;
+
+  /// Signal badge: starting price exceeds AI-estimated market value — risky to bid high
+  ///
+  /// In en, this message translates to:
+  /// **'Overvalued'**
+  String get aiValueSignalOver;
+
+  /// Row label for the AI-estimated market value amount
+  ///
+  /// In en, this message translates to:
+  /// **'Est. market value'**
+  String get aiEstMarketValue;
+
+  /// Row label for the AI-predicted winning bid amount
+  ///
+  /// In en, this message translates to:
+  /// **'Likely winning bid'**
+  String get aiPredictedWinBid;
+
+  /// Label for the win-probability row (percentage is prepended by the widget)
+  ///
+  /// In en, this message translates to:
+  /// **'% chance to win'**
+  String get aiWinProbability;
+
+  /// Prefix shown before the predicted bid when it is clamped to the starting price floor
+  ///
+  /// In en, this message translates to:
+  /// **'at least'**
+  String get aiAtLeast;
 }
 
 class _AppLocalizationsDelegate
