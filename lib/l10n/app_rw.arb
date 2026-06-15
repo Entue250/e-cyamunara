@@ -617,5 +617,14 @@
     }
   },
   "auctionPublished": "Isoko ryatangazwa neza!",
-  "auctionSoftDeleted": "Isoko ryavanwe ku rutonde (amateka y'ibiciro abitswe)."
+  "auctionSoftDeleted": "Isoko ryavanwe ku rutonde (amateka y'ibiciro abitswe).",
+
+  "aiInsights": "Ubushishozi bwa AI",
+  "aiValueSignalUnder": "Igiciro cyoroheje",
+  "aiValueSignalFair": "Igiciro gikwiriye",
+  "aiValueSignalOver": "Igiciro kirenzeho",
+  "aiEstMarketValue": "Igiciro ku isoko",
+  "aiPredictedWinBid": "Igiciro gishoboka ko ari cyo kizatsinda",
+  "aiWinProbability": "% yo gutsinda",
+  "aiAtLeast": "nibura"
 }
