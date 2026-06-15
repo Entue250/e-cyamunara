@@ -712,5 +712,22 @@
     }
   },
   "auctionPublished": "Auction published successfully!",
-  "auctionSoftDeleted": "Auction removed from listings (bid history preserved)."
+  "auctionSoftDeleted": "Auction removed from listings (bid history preserved).",
+
+  "aiInsights": "AI Insights",
+  "@aiInsights": { "description": "AI Insights panel title shown above the price/bid analysis card" },
+  "aiValueSignalUnder": "Undervalued",
+  "@aiValueSignalUnder": { "description": "Signal badge: auction starting price is below AI-estimated market value — good deal for buyer" },
+  "aiValueSignalFair": "Fair Value",
+  "@aiValueSignalFair": { "description": "Signal badge: starting price is close to AI-estimated market value" },
+  "aiValueSignalOver": "Overvalued",
+  "@aiValueSignalOver": { "description": "Signal badge: starting price exceeds AI-estimated market value — risky to bid high" },
+  "aiEstMarketValue": "Est. market value",
+  "@aiEstMarketValue": { "description": "Row label for the AI-estimated market value amount" },
+  "aiPredictedWinBid": "Likely winning bid",
+  "@aiPredictedWinBid": { "description": "Row label for the AI-predicted winning bid amount" },
+  "aiWinProbability": "% chance to win",
+  "@aiWinProbability": { "description": "Label for the win-probability row (percentage is prepended by the widget)" },
+  "aiAtLeast": "at least",
+  "@aiAtLeast": { "description": "Prefix shown before the predicted bid when it is clamped to the starting price floor" }
 }
