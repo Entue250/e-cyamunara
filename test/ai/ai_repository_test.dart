@@ -108,6 +108,13 @@ void main() {
       );
     });
 
+    test('is_accident_history_known is true when set', () {
+      expect(
+        AiFeatures.base(_makeAuction(accidentHistory: 'none'))['is_accident_history_known'],
+        true,
+      );
+    });
+
     test('is_insurance_status_known is false when null', () {
       expect(
         AiFeatures.base(_makeAuction(insuranceStatus: null))['is_insurance_status_known'],
@@ -171,13 +178,21 @@ void main() {
     test('high when startingPrice >= 8,000,000', () {
       expect(AiFeatures.forecast(_makeAuction(startingPrice: 10_000_000))['price_tier'], 'high');
     });
+
+    test('medium when startingPrice == 2,000,000', () {
+      expect(AiFeatures.forecast(_makeAuction(startingPrice: 2_000_000))['price_tier'], 'medium');
+    });
+
+    test('high when startingPrice == 8,000,000', () {
+      expect(AiFeatures.forecast(_makeAuction(startingPrice: 8_000_000))['price_tier'], 'high');
+    });
   });
 
   group('AiFeatures.forecast — days_until_close', () {
-    test('is non-negative even when auction already ended', () {
+    test('is 0.0 when auction already ended', () {
       final past = DateTime(2026, 1, 1);
       final result = AiFeatures.forecast(_makeAuction(endDate: past))['days_until_close'] as double;
-      expect(result >= 0.0, true);
+      expect(result, closeTo(0.0, 0.01));
     });
   });
 
@@ -185,6 +200,20 @@ void main() {
     test('is 0.0 when no bids placed', () {
       final a = _makeAuction(totalBids: 0, timeOfFirstBid: null);
       expect(AiFeatures.forecast(a)['bid_momentum'], 0.0);
+    });
+  });
+
+  group('AiFeatures.forecast — time_to_first_bid_hours', () {
+    test('computes hours from startDate to timeOfFirstBid', () {
+      final start = DateTime(2026, 6, 14, 10, 0);
+      final firstBid = DateTime(2026, 6, 14, 12, 30); // 2.5 hours later
+      final a = _makeAuction(startDate: start, timeOfFirstBid: firstBid);
+      expect(AiFeatures.forecast(a)['time_to_first_bid_hours'], closeTo(2.5, 0.01));
+    });
+
+    test('is 0.0 when timeOfFirstBid is null', () {
+      final a = _makeAuction(timeOfFirstBid: null);
+      expect(AiFeatures.forecast(a)['time_to_first_bid_hours'], 0.0);
     });
   });
 
