@@ -1,0 +1,27 @@
+# Python bytecode cache
+**/__pycache__/
+**/*.pyc
+**/*.pyo
+**/*.pyd
+
+# Training test suite — not needed at inference time
+training/tests/
+
+# Raw data files — models are pre-trained and stored in trained_models/
+data/
+
+# Development scripts
+scripts/
+
+# Local env files
+.env
+**/.env
+
+# pytest / coverage artefacts
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Editor / OS noise
+.DS_Store
+Thumbs.db
