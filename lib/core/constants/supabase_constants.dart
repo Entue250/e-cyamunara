@@ -45,6 +45,8 @@ class SupabaseConstants {
   static const String fnRegisterClient = 'register-client';
   static const String fnResetClientPassword = 'reset-client-password';
   static const String fnAutoCloseAuctions = 'auto-close-auctions';
+  static const String fnAiPredictPrice = 'ai-predict-price';
+  static const String fnAiBidForecast = 'ai-bid-forecast';
 
   // ── OneSignal (push notifications) ───────────────────────────────────────
   static String get oneSignalAppId => dotenv.env['ONESIGNAL_APP_ID'] ?? '';
