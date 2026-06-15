@@ -40,7 +40,7 @@ class AiFeatures {
       };
 
   static Map<String, dynamic> forecast(AuctionModel a) {
-    final now = DateTime.now();
+    final now = DateTime.now().toUtc();
     final daysUntilClose = max(0.0, a.endDate.difference(now).inHours / 24.0);
     final timeToFirstBidHours = a.timeOfFirstBid != null
         ? a.timeOfFirstBid!.difference(a.startDate).inMinutes / 60.0
@@ -75,7 +75,7 @@ class AiFeatures {
   }
 
   static int assetAge(AuctionModel a) =>
-      a.manufacturingYear == null ? 5 : DateTime.now().year - a.manufacturingYear!;
+      a.manufacturingYear == null ? 5 : DateTime.now().toUtc().year - a.manufacturingYear!;
 
   static double durationHours(AuctionModel a) =>
       a.endDate.difference(a.startDate).inMinutes / 60.0;
