@@ -161,20 +161,39 @@ SELECT cron.schedule(
   $$
 );
 
--- ── Step E: Verify all 5 jobs are active ─────────────────────────────────────
+-- ── Step E: Schedule weekly retraining (Phase 9D) ────────────────────────────
+-- 03:00 UTC = 05:00 Kigali (UTC+2). Every Sunday.
+-- Prerequisite: TRAINING_WORKER_URL secret must be set in Supabase before enabling.
+-- If the training worker is not yet deployed, comment out this block.
+SELECT cron.schedule(
+  'weekly-retraining',
+  '0 3 * * 0',
+  $$
+    SELECT net.http_post(
+      url     := 'https://ltpcbsapeshskdnvtlru.supabase.co/functions/v1/trigger-weekly-retraining',
+      headers := '{"Authorization":"Bearer YOUR_SERVICE_ROLE_KEY","Content-Type":"application/json"}'::jsonb,
+      body    := '{}'::jsonb
+    )
+  $$
+);
+
+-- ── Step F: Verify all 6 jobs are active ─────────────────────────────────────
 SELECT jobid, jobname, schedule, active
 FROM cron.job
 ORDER BY jobname;
--- Expected 5 rows:
+-- Expected 6 rows:
 --   cleanup-notifications          0 22 * * 0
 --   close-auctions                 */5 * * * *
 --   collect-ai-shadow-metrics      0 2 * * *
 --   compute-prediction-comparison  */10 * * * *
 --   generate-auction-price-estimate 0 * * * *
+--   weekly-retraining              0 3 * * 0
 
 -- =============================================================================
 -- PHASE 4B ROLLBACK (remove Phase 4B jobs only):
 --   SELECT cron.unschedule('generate-auction-price-estimate');
 --   SELECT cron.unschedule('compute-prediction-comparison');
 --   SELECT cron.unschedule('collect-ai-shadow-metrics');
+-- PHASE 9D ROLLBACK:
+--   SELECT cron.unschedule('weekly-retraining');
 -- =============================================================================
