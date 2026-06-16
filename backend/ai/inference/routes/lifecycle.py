@@ -269,12 +269,12 @@ def reload_shadow_models(request: Request) -> dict:
         rows = (
             store._client  # noqa: SLF001
             .table("ai_feature_flags")
-            .select("flag_key,flag_value")
-            .in_("flag_key", list(_SHADOW_FLAG_KEYS))
+            .select("key,value")
+            .in_("key", list(_SHADOW_FLAG_KEYS))
             .execute()
         )
         for row in (rows.data or []):
-            shadow_flags[row["flag_key"]] = row.get("flag_value") or ""
+            shadow_flags[row["key"]] = row.get("value") or ""
     except Exception as exc:
         log.warning("Could not fetch shadow flags from Supabase: %s", exc)
 
