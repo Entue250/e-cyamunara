@@ -66,8 +66,13 @@ def _read_saved_metrics(out_dir: pathlib.Path) -> tuple[dict, int, int, int]:
 def run(
     data_path: pathlib.Path | None = None,
     datasource: str = "synthetic",
+    promote_to_active: bool = True,
 ) -> bool:
-    """Orchestrate Model B training → acceptance → persistence → registration."""
+    """Orchestrate Model B training → acceptance → persistence → registration.
+
+    When promote_to_active=False the model is saved and registered but NOT set
+    as the serving active version — it enters Phase 9E candidate evaluation.
+    """
     data_path = pathlib.Path(data_path or CONFIG.paths.synthetic_auctions)
     base_dir = CONFIG.paths.trained_models_dir
     registry = ModelRegistry(registry_path=CONFIG.paths.trained_models_registry_file)
@@ -149,9 +154,11 @@ def run(
     )
     registry.register(entry)
     registry.save_model_card(entry, output_dir=out_dir)
-    if result.passed:
+    if result.passed and promote_to_active:
         registry.set_active("model_b", version)
         print(f"[run_model_b] active        → {version}")
+    elif result.passed:
+        print(f"[run_model_b] candidate     → {version} (promote_to_active=False)")
 
     duration = time.monotonic() - t0
     log_run(
