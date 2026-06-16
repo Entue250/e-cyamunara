@@ -37,7 +37,14 @@ from sklearn.metrics import (
 
 from training.config import CONFIG
 from training.datasets.loaders import load_auctions, describe_auctions
-from training.datasets.filters import filter_closed, require_min_rows
+from training.datasets.filters import (
+    filter_closed,
+    require_min_rows,
+    require_min_bid_events,
+    MIN_ROWS_REAL_C,
+    MIN_ROWS_SYNTHETIC_C,
+    MIN_BID_EVENTS_REAL_C,
+)
 from training.datasets.splitter import temporal_split, split_summary
 from training.preprocessing.pipeline_builder import build_pipeline
 
@@ -209,6 +216,7 @@ def check_thresholds(metrics: dict, thresholds) -> list[str]:
 def train(
     data_path: pathlib.Path | None = None,
     save: bool = True,
+    datasource: str = "synthetic",
 ) -> tuple:
     """Train Model C end-to-end and optionally persist artefacts.
 
@@ -239,9 +247,12 @@ def train(
     print(f"\nAfter filter_closed: {len(df):,} rows")
 
     # ------------------------------------------------------------------
-    # 3. Enforce minimum row count
+    # 3. Enforce minimum row count (datasource-aware)
     # ------------------------------------------------------------------
-    require_min_rows(df, 5_000, label="model_c")
+    _min_rows = MIN_ROWS_REAL_C if datasource == "real" else MIN_ROWS_SYNTHETIC_C
+    require_min_rows(df, _min_rows, label="model_c")
+    if datasource == "real":
+        require_min_bid_events(df, MIN_BID_EVENTS_REAL_C, label="model_c")
 
     # ------------------------------------------------------------------
     # 4. Build binary label BEFORE split
