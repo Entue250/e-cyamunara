@@ -42,11 +42,15 @@ from training import train_model_a
 def run(
     data_path: pathlib.Path | None = None,
     datasource: str = "synthetic",
+    promote_to_active: bool = True,
 ) -> bool:
     """Orchestrate Model A training → acceptance → persistence → registration.
 
     Returns True if the acceptance gate passed, False otherwise.
     Artifacts are saved regardless of outcome.
+    When promote_to_active=False (real-data candidate evaluation), the model is
+    saved and registered but NOT set as the active serving version — it enters
+    Phase 9E candidate evaluation instead.
     """
     data_path = pathlib.Path(data_path or CONFIG.paths.synthetic_auctions)
     base_dir = CONFIG.paths.trained_models_dir
@@ -124,9 +128,11 @@ def run(
     )
     registry.register(entry)
     registry.save_model_card(entry, output_dir=out_dir)
-    if result.passed:
+    if result.passed and promote_to_active:
         registry.set_active("model_a", version)
         print(f"[run_model_a] active        → {version}")
+    elif result.passed:
+        print(f"[run_model_a] candidate     → {version} (promote_to_active=False)")
 
     # ------------------------------------------------------------------
     # 7. Append to training history
