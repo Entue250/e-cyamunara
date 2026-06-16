@@ -226,5 +226,23 @@ class ModelLoader:
     def uptime_seconds(self) -> float:
         return time.monotonic() - self._started_at
 
+    def reload_shadow(
+        self, shadow_flags: dict[str, str], base_dir: pathlib.Path
+    ) -> list[str]:
+        """Hot-reload shadow/candidate models without restarting the process.
+
+        Clears the current shadow dict and re-loads from the provided flags.
+        Used by the POST /models/reload-shadow lifecycle endpoint after the
+        register-candidate-model Edge Function updates ai_feature_flags.
+
+        Returns a list of model names that were successfully loaded.
+        """
+        self._shadow.clear()
+        if shadow_flags:
+            self._load_shadow_models(base_dir, shadow_flags)
+        loaded = list(self._shadow.keys())
+        log.info("Shadow models reloaded: %s", loaded or "none")
+        return loaded
+
     def get_registry(self) -> Optional[ModelRegistry]:
         return self._registry
