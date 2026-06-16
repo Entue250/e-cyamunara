@@ -64,7 +64,7 @@ def run(
 
     print("[run_model_c] Training Model C ...")
     pipeline, calibrated, metrics = train_model_c.train(
-        data_path=data_path, save=False
+        data_path=data_path, save=False, datasource=datasource
     )
 
     result = check_model_c(metrics)
