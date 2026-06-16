@@ -76,7 +76,7 @@ def run(
     # ------------------------------------------------------------------
     print("[run_model_a] Training Model A ...")
     pipeline, xgb_model, metrics = train_model_a.train(
-        data_path=data_path, save=False
+        data_path=data_path, save=False, datasource=datasource
     )
 
     # ------------------------------------------------------------------
