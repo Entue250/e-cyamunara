@@ -79,18 +79,23 @@ class TrainingResult:
 RunnerFn = Callable[[pathlib.Path | None, str], bool]
 
 
-def _default_runners() -> dict[str, RunnerFn]:
-    """Import the run_model_* orchestrators lazily to avoid import at module level."""
+def _default_runners(datasource: str = "synthetic") -> dict[str, RunnerFn]:
+    """Import the run_model_* orchestrators lazily to avoid import at module level.
+
+    Real-data runs set promote_to_active=False so newly trained models enter
+    Phase 9E candidate evaluation instead of immediately replacing active models.
+    """
     from training import run_model_a, run_model_b, run_model_c
+    promote = datasource == "synthetic"
     return {
-        "model_a": lambda data_path, datasource: run_model_a.run(
-            data_path=data_path, datasource=datasource
+        "model_a": lambda data_path, ds: run_model_a.run(
+            data_path=data_path, datasource=ds, promote_to_active=promote
         ),
-        "model_b": lambda data_path, datasource: run_model_b.run(
-            data_path=data_path, datasource=datasource
+        "model_b": lambda data_path, ds: run_model_b.run(
+            data_path=data_path, datasource=ds, promote_to_active=promote
         ),
-        "model_c": lambda data_path, datasource: run_model_c.run(
-            data_path=data_path, datasource=datasource
+        "model_c": lambda data_path, ds: run_model_c.run(
+            data_path=data_path, datasource=ds, promote_to_active=promote
         ),
     }
 
@@ -215,7 +220,7 @@ def run_training_job(
             )
 
         # ── Step 5: Train each model ─────────────────────────────────────────
-        _runners = runners if runners is not None else _default_runners()
+        _runners = runners if runners is not None else _default_runners(job.datasource)
         model_results: dict[str, Any] = {}
 
         for model_name in models_requested:
