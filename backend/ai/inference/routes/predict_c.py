@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 import time
 from typing import Any, Optional
 
@@ -12,6 +13,8 @@ from ..df_utils import build_inference_df
 from ..error_codes import ErrorCode
 from ..feature_validator import validate_model_bc
 from ..schemas import ModelCRequest, ModelCResponse
+
+log = logging.getLogger(__name__)
 
 router = APIRouter(tags=["predict"])
 
@@ -81,6 +84,23 @@ def predict_model_c(body: ModelCRequest, request: Request) -> ModelCResponse:
         )
         prediction_id = store.store(row)
 
+    # Phase 9E — candidate model inference (non-blocking; failure silently omitted)
+    candidate_fields: dict[str, Any] = {}
+    shadow = loader.get_shadow("model_c")
+    if shadow is not None:
+        try:
+            c_t0 = time.perf_counter()
+            c_prob = _run_inference(shadow, features_dict)
+            c_ms = int((time.perf_counter() - c_t0) * 1000)
+            candidate_fields = {
+                "candidate_version": shadow.version,
+                "candidate_predicted_probability": round(c_prob, 4),
+                "candidate_confidence_score": shadow.confidence_score,
+                "candidate_inference_ms": c_ms,
+            }
+        except Exception as exc:
+            log.warning("Candidate model_c inference failed (skipped): %s", exc)
+
     return ModelCResponse(
         prediction_id=prediction_id,
         model_version=loaded.version,
@@ -88,4 +108,5 @@ def predict_model_c(body: ModelCRequest, request: Request) -> ModelCResponse:
         predicted_probability=round(probability, 4),
         confidence_score=loaded.confidence_score,
         inference_ms=inference_ms,
+        **candidate_fields,
     )
