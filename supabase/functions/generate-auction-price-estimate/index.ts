@@ -1,28 +1,30 @@
 // supabase/functions/generate-auction-price-estimate/index.ts
 //
-// Phase 4B Shadow Mode — Synthetic Auction Price Estimate Generation
+// Phase 9A.2 — Real ML Auction Price Estimate Generation (batch shadow mode)
 //
-// Runs hourly via pg_cron. Generates synthetic predictions for all eligible
-// active auctions. No external ML API is called — predictions are produced
-// via a deterministic formula keyed on auction_id (same input always
-// produces the same prediction). Model versions come from ai_feature_flags.
+// Runs hourly via pg_cron. Calls the FastAPI inference service for all eligible
+// active auctions and stores real model predictions in ai_predictions with
+// prediction_source = 'real', model_stage = 'shadow'.
 //
-// Synthetic formula rationale:
-//   • starting_price × multiplier where multiplier ∈ [1.05, 1.50]
-//   • multiplier is derived from auction_id bits (deterministic, uniform)
-//   • metadata_completeness_score adjusts multiplier slightly upward
-//   • value_signal thresholds: < 1.10 → overpriced, > 1.30 → undervalued
-//   • confidence_score ∈ [0.55, 0.85] based on metadata completeness
+// All three models are called in parallel per auction (Promise.all). If any
+// model call fails or FastAPI is unavailable, all three predictions for that
+// auction are skipped atomically and the error is logged. The function never
+// returns an error response to pg_cron — per-auction failures are isolated.
+//
+// Feature payload is built from v_auction_ml_features view columns.
+// store_prediction = false is passed to FastAPI — this function handles its
+// own INSERT to maintain full control over prediction_source and model_stage.
 //
 // Idempotency:
-//   • Skips auctions with an auction_price_estimate prediction created today (UTC)
-//   • Logs every skip with skip_reason = 'already_predicted'
+//   • Skips auctions with any auction_price_estimate prediction created today (UTC).
+//     Covers both real and synthetic predictions — prevents double-generation
+//     during the transition window after Phase 9A.2 is first deployed.
 //
 // Shadow mode invariant:
 //   • ai.shadow_mode_enabled must be 'true' (else all auctions skipped)
 //   • ai.predictions_visible_to_clients remains 'false' — not touched here
 //
-// Auth: Bearer SUPABASE_SERVICE_ROLE_KEY (same pattern as auto-close-auctions)
+// Auth: Bearer SUPABASE_SERVICE_ROLE_KEY
 
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
@@ -37,12 +39,22 @@ const SELECTED_COLUMNS = [
   'has_images', 'has_description', 'auction_status',
 ].join(', ');
 
+const INFERENCE_TIMEOUT_MS = 30_000;
+const MAX_RETRIES = 3;
+
 serve(async (req) => {
   // ── Auth guard: service role key only ──────────────────────────────────────
   const expectedKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
   const incomingAuth = req.headers.get('Authorization') ?? '';
   if (!expectedKey || incomingAuth !== `Bearer ${expectedKey}`) {
     return json({ error: 'Unauthorized' }, 401);
+  }
+
+  // ── Inference URL is required ──────────────────────────────────────────────
+  const inferenceUrl = Deno.env.get('AI_INFERENCE_URL');
+  if (!inferenceUrl) {
+    console.error(JSON.stringify({ event: 'config_error', missing: 'AI_INFERENCE_URL' }));
+    return json({ error: 'AI inference service not configured', generated: 0, skipped: 0, errors: 0 }, 503);
   }
 
   const supabase = createClient(
@@ -59,9 +71,6 @@ serve(async (req) => {
       .select('key, value')
       .in('key', [
         'ai.shadow_mode_enabled',
-        'ai.model_a_active_version',
-        'ai.model_b_active_version',
-        'ai.model_c_active_version',
         'ai.min_feature_completeness_score',
       ]);
 
@@ -78,9 +87,6 @@ serve(async (req) => {
       return json({ ...result, skipped_reason: 'shadow_mode_disabled' });
     }
 
-    const modelAVersion = flags['ai.model_a_active_version'] ?? 'v1.0.4-synthetic';
-    const modelBVersion = flags['ai.model_b_active_version'] ?? 'v1.0.0-synthetic';
-    const modelCVersion = flags['ai.model_c_active_version'] ?? 'v1.0.0-synthetic';
     const minCompleteness = parseFloat(flags['ai.min_feature_completeness_score'] ?? '0.5');
 
     // ── Fetch active auctions via ML features view ───────────────────────────
@@ -114,7 +120,7 @@ serve(async (req) => {
           continue;
         }
 
-        // Filter: already predicted today
+        // Filter: already predicted today (any source — prevents double-generation)
         const { data: existing } = await supabase
           .from('ai_predictions')
           .select('id')
@@ -128,45 +134,136 @@ serve(async (req) => {
           continue;
         }
 
-        // ── Synthetic prediction formulas ──────────────────────────────────
-        const factor = auctionIdFactor(auctionId); // deterministic [0, 1)
         const startingPrice = Math.max(Number(auction.starting_price ?? 0), 0);
 
-        // Model A: auction price estimate
-        const aMultiplier = 1.05 + factor * 0.40 + completeness * 0.05;
-        const expectedAuctionPrice = startingPrice > 0
-          ? Math.round(startingPrice * aMultiplier)
-          : 0;
-        const valueRatio = startingPrice > 0
-          ? Math.round((expectedAuctionPrice / startingPrice) * 1000) / 1000
-          : 1.0;
-        const valueSignal: string = valueRatio > 1.30
-          ? 'undervalued'
-          : valueRatio < 1.10
-          ? 'overpriced'
-          : 'fairly_priced';
-        const confidenceA = Math.min(0.55 + completeness * 0.30, 0.85);
+        // ── Build feature payloads ─────────────────────────────────────────
+        // baseFeatures → Model A (price estimate)
+        // engagementFeatures → Models B + C (winning bid + bid probability)
+        const baseFeatures: Record<string, unknown> = {
+          main_category: auction.main_category,
+          sub_category: auction.sub_category ?? null,
+          brand: auction.brand ?? null,
+          condition: auction.condition ?? null,
+          region: auction.region,
+          starting_price: startingPrice,
+          fuel_type: auction.fuel_type ?? null,
+          transmission: auction.transmission ?? null,
+          mileage: auction.mileage ?? null,
+          ownership_history: auction.ownership_history ?? null,
+          accident_history: auction.accident_history ?? null,
+          insurance_status: auction.insurance_status ?? null,
+          manufacturing_year: auction.manufacturing_year ?? null,
+          asset_age: auction.asset_age ?? null,
+          auction_duration_hours: auction.auction_duration_hours ?? null,
+          has_description: auction.has_description ?? false,
+          has_images: auction.has_images ?? false,
+        };
 
-        // Model B: winning bid estimate (slightly above Model A)
-        const bMultiplier = aMultiplier + 0.05 + factor * 0.10;
-        const predictedWinningBid = startingPrice > 0
-          ? Math.round(startingPrice * bMultiplier)
-          : 0;
-        const confidenceB = Math.min(0.50 + completeness * 0.25, 0.80);
+        const totalBids = auction.total_bids ?? 0;
+        const viewsCount = auction.views_count ?? 0;
 
-        // Model C: bid probability (0.50–0.95)
-        const predictedProbability = Math.min(
-          0.50 + factor * 0.40 + completeness * 0.10,
-          0.95,
-        );
-        const confidenceC = Math.min(0.60 + completeness * 0.20, 0.80);
+        const engagementFeatures: Record<string, unknown> = {
+          ...baseFeatures,
+          total_bids: totalBids,
+          unique_bidder_count: auction.unique_bidder_count ?? 0,
+          views_count: viewsCount,
+          bids_per_view_ratio: auction.bids_per_view_ratio ?? 0,
+          view_to_bid_ratio: totalBids > 0 ? viewsCount / totalBids : 0,
+          bid_momentum: 0,
+          time_to_first_bid_hours: null,
+          is_first_bid_quick: false,
+          days_until_close: 0,
+          bid_acceleration: 0.5,
+          price_tier: startingPrice >= 8_000_000 ? 'high'
+            : startingPrice >= 2_000_000 ? 'medium'
+            : 'low',
+        };
 
+        // ── Call FastAPI — all 3 models in parallel ────────────────────────
+        // store_prediction: false — this function handles INSERT itself so that
+        // prediction_source and model_stage are set explicitly as 'real'/'shadow'.
+        let predA: any, predB: any, predC: any;
+        try {
+          const [respA, respB, respC] = await Promise.all([
+            withRetry(
+              () => fetchWithTimeout(
+                `${inferenceUrl}/predict-price`,
+                {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    auction_id: auctionId,
+                    store_prediction: false,
+                    features: baseFeatures,
+                  }),
+                },
+                INFERENCE_TIMEOUT_MS,
+              ),
+              MAX_RETRIES,
+            ),
+            withRetry(
+              () => fetchWithTimeout(
+                `${inferenceUrl}/predict-winning-bid`,
+                {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    auction_id: auctionId,
+                    store_prediction: false,
+                    features: engagementFeatures,
+                  }),
+                },
+                INFERENCE_TIMEOUT_MS,
+              ),
+              MAX_RETRIES,
+            ),
+            withRetry(
+              () => fetchWithTimeout(
+                `${inferenceUrl}/predict-winning-probability`,
+                {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    auction_id: auctionId,
+                    store_prediction: false,
+                    features: engagementFeatures,
+                  }),
+                },
+                INFERENCE_TIMEOUT_MS,
+              ),
+              MAX_RETRIES,
+            ),
+          ]);
+
+          if (!respA.ok || !respB.ok || !respC.ok) {
+            throw new Error(
+              `FastAPI error — A:${respA.status} B:${respB.status} C:${respC.status}`
+            );
+          }
+
+          [predA, predB, predC] = await Promise.all([
+            respA.json(),
+            respB.json(),
+            respC.json(),
+          ]);
+        } catch (inferErr) {
+          const durationMs = Date.now() - startMs;
+          console.error(`[generate-estimate] FastAPI unavailable for ${auctionId}:`, inferErr);
+          await logEvent(supabase, auctionId, 'prediction_error', {
+            duration_ms: durationMs,
+            error_code: 'FASTAPI_INFERENCE_ERROR',
+            error_message: String(inferErr),
+          }).catch(() => {});
+          result.errors++;
+          continue;
+        }
+
+        // ── Feature snapshot for audit trail ──────────────────────────────
         const featureSnapshot = {
           region: auction.region,
           main_category: auction.main_category,
           sub_category: auction.sub_category,
           brand: auction.brand,
-          model: auction.model,
           manufacturing_year: auction.manufacturing_year,
           mileage: auction.mileage,
           condition: auction.condition,
@@ -175,42 +272,49 @@ serve(async (req) => {
           starting_price: startingPrice,
           asset_age: auction.asset_age,
           auction_duration_hours: auction.auction_duration_hours,
-          total_bids: auction.total_bids,
+          total_bids: totalBids,
           unique_bidder_count: auction.unique_bidder_count,
-          views_count: auction.views_count,
+          views_count: viewsCount,
           metadata_completeness_score: completeness,
           has_images: auction.has_images,
           has_description: auction.has_description,
-          synthetic: true,
+          synthetic: false,
+          generated_by: 'batch_cron',
         };
 
         // ── Insert all 3 prediction types atomically ───────────────────────
         const { error: insertErr } = await supabase.from('ai_predictions').insert([
           {
             auction_id: auctionId,
-            model_version: modelAVersion,
+            model_version: predA.model_version,
             prediction_type: 'auction_price_estimate',
-            expected_auction_price: expectedAuctionPrice,
-            value_signal: valueSignal,
-            value_ratio: valueRatio,
+            prediction_source: 'real',
+            model_stage: 'shadow',
+            expected_auction_price: predA.expected_auction_price,
+            value_signal: predA.value_signal,
+            value_ratio: predA.value_ratio,
             starting_price_at_prediction: startingPrice,
-            confidence_score: confidenceA,
+            confidence_score: predA.confidence_score,
             feature_snapshot: featureSnapshot,
           },
           {
             auction_id: auctionId,
-            model_version: modelBVersion,
+            model_version: predB.model_version,
             prediction_type: 'winning_bid',
-            predicted_winning_bid: predictedWinningBid,
-            confidence_score: confidenceB,
+            prediction_source: 'real',
+            model_stage: 'shadow',
+            predicted_winning_bid: predB.predicted_winning_bid,
+            confidence_score: predB.confidence_score,
             feature_snapshot: { ...featureSnapshot, prediction_model: 'B' },
           },
           {
             auction_id: auctionId,
-            model_version: modelCVersion,
+            model_version: predC.model_version,
             prediction_type: 'bid_probability',
-            predicted_probability: predictedProbability,
-            confidence_score: confidenceC,
+            prediction_source: 'real',
+            model_stage: 'shadow',
+            predicted_probability: predC.predicted_probability,
+            confidence_score: predC.confidence_score,
             feature_snapshot: { ...featureSnapshot, prediction_model: 'C' },
           },
         ]);
@@ -222,17 +326,19 @@ serve(async (req) => {
         await logEvent(supabase, auctionId, 'prediction_generated', {
           models_run: ['model_a', 'model_b', 'model_c'],
           model_versions: {
-            model_a: modelAVersion,
-            model_b: modelBVersion,
-            model_c: modelCVersion,
+            model_a: predA.model_version,
+            model_b: predB.model_version,
+            model_c: predC.model_version,
           },
           duration_ms: durationMs,
           feature_completeness_score: completeness,
           metadata: {
-            expected_auction_price: expectedAuctionPrice,
-            value_signal: valueSignal,
-            value_ratio: valueRatio,
-            synthetic: true,
+            expected_auction_price: predA.expected_auction_price,
+            value_signal: predA.value_signal,
+            value_ratio: predA.value_ratio,
+            predicted_winning_bid: predB.predicted_winning_bid,
+            predicted_probability: predC.predicted_probability,
+            synthetic: false,
           },
         });
 
@@ -242,7 +348,7 @@ serve(async (req) => {
         console.error(`[generate-estimate] auction ${auctionId}:`, auctionErr);
         await logEvent(supabase, auctionId, 'prediction_error', {
           duration_ms: durationMs,
-          error_code: 'SYNTHETIC_GENERATION_ERROR',
+          error_code: 'GENERATION_ERROR',
           error_message: String(auctionErr),
         }).catch(() => {});
         result.errors++;
@@ -258,12 +364,34 @@ serve(async (req) => {
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-// Derives a stable [0, 1) float from the first 8 hex digits of a UUID.
-// Same auction_id always produces the same factor — no randomness.
-function auctionIdFactor(auctionId: string): number {
-  const hex = auctionId.replace(/-/g, '').substring(0, 8);
-  const val = parseInt(hex, 16);
-  return (val % 1000) / 1000;
+async function fetchWithTimeout(
+  url: string,
+  init: RequestInit,
+  timeoutMs: number,
+): Promise<Response> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(url, { ...init, signal: controller.signal });
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+async function withRetry<T>(
+  fn: () => Promise<T>,
+  maxAttempts: number,
+  baseDelayMs = 1_000,
+): Promise<T> {
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    try {
+      return await fn();
+    } catch (err) {
+      if (attempt === maxAttempts) throw err;
+      await new Promise<void>(r => setTimeout(r, baseDelayMs * Math.pow(2, attempt - 1)));
+    }
+  }
+  throw new Error('unreachable');
 }
 
 async function logEvent(
