@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 import time
 from typing import Any, Optional
 
@@ -13,6 +14,8 @@ from ..df_utils import build_inference_df
 from ..error_codes import ErrorCode
 from ..feature_validator import validate_model_a
 from ..schemas import ModelARequest, ModelAResponse
+
+log = logging.getLogger(__name__)
 
 router = APIRouter(tags=["predict"])
 
@@ -100,6 +103,25 @@ def predict_model_a(body: ModelARequest, request: Request) -> ModelAResponse:
         )
         prediction_id = store.store(row)
 
+    # Phase 9E — candidate model inference (non-blocking; failure silently omitted)
+    candidate_fields: dict[str, Any] = {}
+    shadow = loader.get_shadow("model_a")
+    if shadow is not None:
+        try:
+            c_t0 = time.perf_counter()
+            c_price, c_signal, c_ratio = _run_inference(shadow, features_dict)
+            c_ms = int((time.perf_counter() - c_t0) * 1000)
+            candidate_fields = {
+                "candidate_version": shadow.version,
+                "candidate_expected_auction_price": round(c_price, 2),
+                "candidate_value_signal": c_signal,
+                "candidate_value_ratio": c_ratio,
+                "candidate_confidence_score": shadow.confidence_score,
+                "candidate_inference_ms": c_ms,
+            }
+        except Exception as exc:
+            log.warning("Candidate model_a inference failed (skipped): %s", exc)
+
     return ModelAResponse(
         prediction_id=prediction_id,
         model_version=loaded.version,
@@ -109,4 +131,5 @@ def predict_model_a(body: ModelARequest, request: Request) -> ModelAResponse:
         value_ratio=ratio,
         confidence_score=loaded.confidence_score,
         inference_ms=inference_ms,
+        **candidate_fields,
     )
