@@ -282,8 +282,8 @@ serve(async (req) => {
           generated_by: 'batch_cron',
         };
 
-        // ── Insert all 3 prediction types atomically ───────────────────────
-        const { error: insertErr } = await supabase.from('ai_predictions').insert([
+        // ── Insert active (shadow) prediction rows ─────────────────────────
+        const shadowRows = [
           {
             auction_id: auctionId,
             model_version: predA.model_version,
@@ -317,7 +317,54 @@ serve(async (req) => {
             confidence_score: predC.confidence_score,
             feature_snapshot: { ...featureSnapshot, prediction_model: 'C' },
           },
-        ]);
+        ];
+
+        // Phase 9E: append candidate rows when inference returned candidate fields
+        const candidateRows: Record<string, unknown>[] = [];
+
+        if (predA.candidate_version) {
+          candidateRows.push({
+            auction_id: auctionId,
+            model_version: predA.candidate_version,
+            prediction_type: 'auction_price_estimate',
+            prediction_source: 'real',
+            model_stage: 'candidate',
+            expected_auction_price: predA.candidate_expected_auction_price,
+            value_signal: predA.candidate_value_signal,
+            value_ratio: predA.candidate_value_ratio,
+            starting_price_at_prediction: startingPrice,
+            confidence_score: predA.candidate_confidence_score,
+            feature_snapshot: featureSnapshot,
+          });
+        }
+        if (predB.candidate_version) {
+          candidateRows.push({
+            auction_id: auctionId,
+            model_version: predB.candidate_version,
+            prediction_type: 'winning_bid',
+            prediction_source: 'real',
+            model_stage: 'candidate',
+            predicted_winning_bid: predB.candidate_predicted_winning_bid,
+            confidence_score: predB.candidate_confidence_score,
+            feature_snapshot: { ...featureSnapshot, prediction_model: 'B' },
+          });
+        }
+        if (predC.candidate_version) {
+          candidateRows.push({
+            auction_id: auctionId,
+            model_version: predC.candidate_version,
+            prediction_type: 'bid_probability',
+            prediction_source: 'real',
+            model_stage: 'candidate',
+            predicted_probability: predC.candidate_predicted_probability,
+            confidence_score: predC.candidate_confidence_score,
+            feature_snapshot: { ...featureSnapshot, prediction_model: 'C' },
+          });
+        }
+
+        const { error: insertErr } = await supabase
+          .from('ai_predictions')
+          .insert([...shadowRows, ...candidateRows]);
 
         if (insertErr) throw insertErr;
 
