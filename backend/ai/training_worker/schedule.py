@@ -135,8 +135,9 @@ class WeeklyTrainingScheduler:
             datasource=self._datasource,
         )
         log.info("WeeklyTrainingScheduler: firing job %s (model=%s)", job.job_id, self._model_name)
+        result = None
         try:
-            run_training_job(
+            result = run_training_job(
                 job,
                 self._store,
                 supabase_url=self._supabase_url,
@@ -144,4 +145,38 @@ class WeeklyTrainingScheduler:
             )
         except Exception:
             log.exception("Unexpected error in scheduled training job %s", job.job_id)
+
+        # Phase 9E — register trained real-data models as shadow candidates
+        if result is not None and result.all_passed and self._datasource == "real":
+            self._register_candidates(result)
+
         return job.job_id
+
+    def _register_candidates(self, result: Any) -> None:
+        """Call register-candidate-model Edge Function for each passed model."""
+        try:
+            from training.config import CONFIG
+            from training_worker.candidate_registry import register_all_candidates
+
+            model_names = (
+                ["model_a", "model_b", "model_c"]
+                if self._model_name == "all"
+                else [self._model_name]
+            )
+            passed_names = [
+                m for m in model_names
+                if result.model_results.get(m, {}).get("passed")
+            ]
+            if not passed_names:
+                return
+
+            reg_results = register_all_candidates(
+                model_names=passed_names,
+                registry_path=CONFIG.paths.trained_models_registry_file,
+                supabase_url=self._supabase_url,
+                supabase_key=self._supabase_key,
+            )
+            for model, status in reg_results.items():
+                log.info("Candidate registration %s: %s", model, status)
+        except Exception:
+            log.exception("Candidate registration failed — training completed successfully")
