@@ -82,8 +82,8 @@ serve(async (req: Request) => {
   const { error: flagErr } = await supabase
     .from("ai_feature_flags")
     .upsert(
-      { flag_key: flagKey, flag_value: candidate_version, updated_at: new Date().toISOString() },
-      { onConflict: "flag_key" },
+      { key: flagKey, value: candidate_version, updated_at: new Date().toISOString() },
+      { onConflict: "key" },
     );
 
   if (flagErr) {
