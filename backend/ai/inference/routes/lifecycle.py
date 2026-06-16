@@ -25,7 +25,7 @@ import sys
 
 from fastapi import APIRouter, HTTPException, Request
 
-from ..deps import get_loader
+from ..deps import get_loader, get_store
 from ..schemas import (
     ModelHistoryResponse,
     ModelVersionInfo,
@@ -34,6 +34,13 @@ from ..schemas import (
     PromotionCandidate,
     PromotionCandidatesResponse,
     RollbackResponse,
+)
+
+# Shadow flags are stored as PostgreSQL session parameters in ai_feature_flags
+_SHADOW_FLAG_KEYS = (
+    "ai.model_a_shadow_version",
+    "ai.model_b_shadow_version",
+    "ai.model_c_shadow_version",
 )
 
 log = logging.getLogger(__name__)
@@ -242,3 +249,39 @@ def rollback_model(model_name: str, request: Request) -> RollbackResponse:
             "ModelLoader reloaded — previous version serves predictions immediately."
         ),
     )
+
+
+@router.post("/models/reload-shadow")
+def reload_shadow_models(request: Request) -> dict:
+    """Re-read ai_feature_flags and hot-reload shadow/candidate models.
+
+    Called by the register-candidate-model Edge Function after updating the
+    ai.model_*_shadow_version flags so the inference service starts serving
+    candidate predictions without a process restart.
+    """
+    loader, registry = _get_registry_or_503(request)
+    store = get_store(request)
+    base_dir: pathlib.Path = registry._path.parent  # noqa: SLF001
+
+    # Re-fetch shadow version flags from Supabase ai_feature_flags
+    shadow_flags: dict[str, str] = {}
+    try:
+        rows = (
+            store._client  # noqa: SLF001
+            .table("ai_feature_flags")
+            .select("flag_key,flag_value")
+            .in_("flag_key", list(_SHADOW_FLAG_KEYS))
+            .execute()
+        )
+        for row in (rows.data or []):
+            shadow_flags[row["flag_key"]] = row.get("flag_value") or ""
+    except Exception as exc:
+        log.warning("Could not fetch shadow flags from Supabase: %s", exc)
+
+    loaded_models = loader.reload_shadow(shadow_flags, base_dir)
+    log.info("[lifecycle] reload-shadow complete: %s", loaded_models)
+    return {
+        "status": "ok",
+        "shadow_flags": shadow_flags,
+        "loaded_models": loaded_models,
+    }
