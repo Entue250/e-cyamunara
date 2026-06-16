@@ -36,6 +36,8 @@ from training.datasets.filters import (
     filter_closed,
     filter_has_winning_amount,
     require_min_rows,
+    MIN_ROWS_REAL_AB,
+    MIN_ROWS_SYNTHETIC_AB,
 )
 from training.datasets.splitter import temporal_split, split_summary
 from training.preprocessing.pipeline_builder import build_pipeline
@@ -125,6 +127,7 @@ def check_thresholds(metrics: dict, thresholds) -> list[str]:
 def train(
     data_path: pathlib.Path | None = None,
     save: bool = True,
+    datasource: str = "synthetic",
 ) -> tuple[object, object, dict]:
     """Train Model A (market value estimation) and optionally persist artifacts.
 
@@ -156,9 +159,10 @@ def train(
     print(f"Rows after filter_has_winning_amount: {len(df):,}")
 
     # ------------------------------------------------------------------
-    # 3. Enforce minimum dataset size
+    # 3. Enforce minimum dataset size (datasource-aware)
     # ------------------------------------------------------------------
-    require_min_rows(df, 10_000, label="model_a")
+    _min_rows = MIN_ROWS_REAL_AB if datasource == "real" else MIN_ROWS_SYNTHETIC_AB
+    require_min_rows(df, _min_rows, label="model_a")
 
     # ------------------------------------------------------------------
     # 4. Temporal split
