@@ -70,6 +70,13 @@ class ModelAResponse(BaseModel):
     value_ratio: float = Field(description="expected_price / starting_price")
     confidence_score: float
     inference_ms: int
+    # Phase 9E — candidate model fields (present when a candidate model is loaded)
+    candidate_version: Optional[str] = None
+    candidate_expected_auction_price: Optional[float] = None
+    candidate_value_signal: Optional[str] = None
+    candidate_value_ratio: Optional[float] = None
+    candidate_confidence_score: Optional[float] = None
+    candidate_inference_ms: Optional[int] = None
 
 
 # ---------------------------------------------------------------------------
@@ -98,6 +105,11 @@ class ModelBResponse(BaseModel):
     predicted_winning_bid: float = Field(description="Expected final winning bid in RWF")
     confidence_score: float
     inference_ms: int
+    # Phase 9E — candidate model fields
+    candidate_version: Optional[str] = None
+    candidate_predicted_winning_bid: Optional[float] = None
+    candidate_confidence_score: Optional[float] = None
+    candidate_inference_ms: Optional[int] = None
 
 
 # ---------------------------------------------------------------------------
@@ -116,6 +128,11 @@ class ModelCResponse(BaseModel):
     predicted_probability: float = Field(description="Probability [0, 1] that auction receives ≥1 bid")
     confidence_score: float
     inference_ms: int
+    # Phase 9E — candidate model fields
+    candidate_version: Optional[str] = None
+    candidate_predicted_probability: Optional[float] = None
+    candidate_confidence_score: Optional[float] = None
+    candidate_inference_ms: Optional[int] = None
 
 
 # ---------------------------------------------------------------------------
