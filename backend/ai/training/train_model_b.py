@@ -29,7 +29,13 @@ from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 
 from training.config import CONFIG
 from training.datasets.loaders import load_auctions, describe_auctions
-from training.datasets.filters import filter_closed, filter_has_winning_amount, require_min_rows
+from training.datasets.filters import (
+    filter_closed,
+    filter_has_winning_amount,
+    require_min_rows,
+    MIN_ROWS_REAL_AB,
+    MIN_ROWS_SYNTHETIC_AB,
+)
 from training.datasets.splitter import temporal_split, split_summary
 from training.preprocessing.pipeline_builder import build_pipeline
 
@@ -154,6 +160,7 @@ def print_metrics_report(metrics: dict[str, float]) -> None:
 def train(
     data_path: pathlib.Path | None = None,
     out_dir: pathlib.Path | None = None,
+    datasource: str = "synthetic",
 ) -> dict[str, float]:
     """Run the full Model B training pipeline.
 
@@ -187,7 +194,8 @@ def train(
     # ------------------------------------------------------------------
     df = filter_closed(df)
     df = filter_has_winning_amount(df)
-    require_min_rows(df, 5_000, label="model_b")
+    _min_rows = MIN_ROWS_REAL_AB if datasource == "real" else MIN_ROWS_SYNTHETIC_AB
+    require_min_rows(df, _min_rows, label="model_b")
 
     print(f"After filtering: {len(df):,} rows")
     print()
