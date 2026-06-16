@@ -91,7 +91,7 @@ def run(
     print("[run_model_b] Training Model B ...")
     train_rows = val_rows = test_rows = 0
     try:
-        metrics = train_model_b.train(data_path=data_path, out_dir=out_dir)
+        metrics = train_model_b.train(data_path=data_path, out_dir=out_dir, datasource=datasource)
         _, train_rows, val_rows, test_rows = _read_saved_metrics(out_dir)
     except SystemExit:
         # train_model_b raises SystemExit when its internal gates fail.
