@@ -90,6 +90,16 @@ serve(async (req: Request) => {
       supabaseUrl, serviceKey, highSeverityModels,
     );
     result.early_retrain_triggered = triggerOk;
+
+    // Phase 9Q — notify all active super admins of high-severity drift
+    await _notifySuperAdmins(
+      supabaseUrl,
+      serviceKey,
+      "⚠️ AI Model Drift Detected",
+      `High severity drift on: ${highSeverityModels.join(", ")}. ` +
+        `Early retraining ${triggerOk ? "triggered" : "trigger failed"}.`,
+      "ai_drift",
+    );
   }
 
   return jsonOk(result);
@@ -263,6 +273,79 @@ async function _triggerEarlyRetraining(
   } catch (err) {
     console.warn("[check-model-drift] could not reach trigger-early-retraining:", err);
     return false;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Super-admin notification helper (Phase 9Q)
+// Best-effort: never throws; inserts in-app notification + optional OneSignal push.
+// ---------------------------------------------------------------------------
+
+async function _notifySuperAdmins(
+  supabaseUrl: string,
+  serviceKey: string,
+  title: string,
+  body: string,
+  notifType: string,
+): Promise<void> {
+  try {
+    const sb = createClient(supabaseUrl, serviceKey);
+
+    const { data: supers } = await sb
+      .from("super_admins")
+      .select("id")
+      .eq("account_status", "active");
+
+    if (!supers?.length) return;
+
+    // In-app notification rows — readable from the super admin's notifications list
+    await sb.from("notifications").insert(
+      (supers as any[]).map((s) => ({
+        user_uid:   s.id,
+        title,
+        body,
+        type:       notifType,
+        auction_id: null,
+      })),
+    ).catch(() => {});
+
+    // OneSignal push — only if onesignal_player_id column exists & is populated
+    try {
+      const { data: withIds } = await sb
+        .from("super_admins")
+        .select("onesignal_player_id")
+        .eq("account_status", "active")
+        .not("onesignal_player_id", "is", null);
+
+      const playerIds = (withIds ?? [])
+        .map((s: any) => s.onesignal_player_id as string)
+        .filter(Boolean);
+
+      if (playerIds.length > 0) {
+        const apiKey = Deno.env.get("ONESIGNAL_REST_API_KEY");
+        const appId  = Deno.env.get("ONESIGNAL_APP_ID");
+        if (apiKey && appId) {
+          await fetch("https://onesignal.com/api/v1/notifications", {
+            method: "POST",
+            headers: {
+              Authorization: `Basic ${apiKey}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              app_id:             appId,
+              include_player_ids: playerIds,
+              headings:           { en: title },
+              contents:           { en: body },
+              data:               { type: notifType },
+            }),
+          }).catch(() => {});
+        }
+      }
+    } catch {
+      // onesignal_player_id column absent on super_admins — skip push
+    }
+  } catch {
+    // Never propagate notification errors
   }
 }
 
