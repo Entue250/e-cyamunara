@@ -29,15 +29,17 @@ class AiDashboardScreen extends ConsumerWidget {
     ref.invalidate(aiLatestDriftProvider);
     ref.invalidate(aiRecentEventsProvider);
     ref.invalidate(aiPipelineHealthProvider);
+    ref.invalidate(aiGraduationReadinessProvider);
   }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final overviewAsync   = ref.watch(aiDashboardOverviewProvider);
-    final candidatesAsync = ref.watch(aiCandidateModelsProvider);
-    final driftAsync      = ref.watch(aiLatestDriftProvider);
-    final eventsAsync     = ref.watch(aiRecentEventsProvider);
-    final healthAsync     = ref.watch(aiPipelineHealthProvider);
+    final overviewAsync     = ref.watch(aiDashboardOverviewProvider);
+    final candidatesAsync   = ref.watch(aiCandidateModelsProvider);
+    final driftAsync        = ref.watch(aiLatestDriftProvider);
+    final eventsAsync       = ref.watch(aiRecentEventsProvider);
+    final healthAsync       = ref.watch(aiPipelineHealthProvider);
+    final graduationAsync   = ref.watch(aiGraduationReadinessProvider);
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -99,6 +101,14 @@ class AiDashboardScreen extends ConsumerWidget {
                 loading: () => const SizedBox.shrink(),
                 error:   (_, _) => const SizedBox.shrink(),
                 data:    (d) => _ModelVersionsCard(overviewData: d),
+              ),
+              const SizedBox(height: 12),
+
+              // ── Graduation Readiness (Phase 9K) ────────────────────────
+              graduationAsync.when(
+                loading: () => const _SectionShimmer(),
+                error:   (_, _) => const SizedBox.shrink(),
+                data:    (g) => _GraduationCard(readiness: g),
               ),
               const SizedBox(height: 12),
 
@@ -1587,6 +1597,356 @@ class _ModelVersionsCard extends ConsumerWidget {
     );
     if (confirmed == true) notifier.rollbackModel(modelName);
   }
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// Graduation Readiness card (Phase 9K)
+// ════════════════════════════════════════════════════════════════════════════
+
+class _GraduationCard extends ConsumerWidget {
+  const _GraduationCard({required this.readiness});
+  final Map<String, dynamic> readiness;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final controls  = ref.watch(aiControlsProvider);
+    final notifier  = ref.read(aiControlsProvider.notifier);
+
+    final ready       = readiness['ready'] as bool? ?? false;
+    final isLive      = readiness['predictions_visible'] as bool? ?? false;
+    final shadowDays  = readiness['shadow_days'] as int? ?? 0;
+    final comparisons = readiness['comparisons_count'] as int? ?? 0;
+    final mape        = readiness['rolling_mape'] as double?;
+    final coverage    = readiness['coverage_rate'] as double?;
+
+    final headerColor = isLive
+        ? AppColors.success
+        : ready
+            ? AppColors.gold
+            : AppColors.textSecondary;
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(AppRadius.lg),
+        border: Border.all(
+          color: isLive
+              ? AppColors.success.withValues(alpha: 0.4)
+              : ready
+                  ? AppColors.gold.withValues(alpha: 0.5)
+                  : AppColors.border,
+          width: (isLive || ready) ? 1.5 : 1,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // ── Header ────────────────────────────────────────────────────────
+          Row(
+            children: [
+              Icon(
+                isLive
+                    ? Icons.rocket_launch_outlined
+                    : Icons.checklist_outlined,
+                size: 15,
+                color: headerColor,
+              ),
+              const SizedBox(width: 6),
+              Text(
+                isLive ? 'LIVE — PREDICTIONS VISIBLE TO CLIENTS' : 'GRADUATION READINESS',
+                style: TextStyle(
+                  color: headerColor,
+                  fontSize: 10,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: 0.8,
+                ),
+              ),
+              if (controls.isLoading) ...[
+                const SizedBox(width: 8),
+                const SizedBox(
+                  width: 12, height: 12,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 1.5,
+                    color: AppColors.primaryBlue,
+                  ),
+                ),
+              ],
+            ],
+          ),
+
+          // ── Error ────────────────────────────────────────────────────────
+          if (controls.error != null) ...[
+            const SizedBox(height: 6),
+            Row(
+              children: [
+                const Icon(Icons.error_outline, size: 12, color: AppColors.error),
+                const SizedBox(width: 4),
+                Expanded(
+                  child: Text(
+                    controls.error!,
+                    style: const TextStyle(fontSize: 10, color: AppColors.error),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+                GestureDetector(
+                  onTap: notifier.clearError,
+                  child: const Icon(Icons.close, size: 14, color: AppColors.textHint),
+                ),
+              ],
+            ),
+          ],
+
+          const SizedBox(height: 12),
+
+          // ── Checklist ────────────────────────────────────────────────────
+          _CheckRow(
+            label: 'Coverage ≥ 80%',
+            detail: coverage != null ? '${(coverage * 100).toStringAsFixed(1)}%' : '—',
+            pass: readiness['coverage_ok'] as bool? ?? false,
+          ),
+          _CheckRow(
+            label: 'MAPE ≤ 25%',
+            detail: mape != null ? '${(mape * 100).toStringAsFixed(1)}%' : 'no data yet',
+            pass: readiness['mape_ok'] as bool? ?? false,
+          ),
+          _CheckRow(
+            label: 'Shadow mode ≥ 7 days',
+            detail: '$shadowDays day${shadowDays == 1 ? '' : 's'}',
+            pass: readiness['shadow_age_ok'] as bool? ?? false,
+          ),
+          _CheckRow(
+            label: '≥ 50 predictions compared',
+            detail: '$comparisons comparisons',
+            pass: readiness['comparisons_ok'] as bool? ?? false,
+          ),
+          _CheckRow(
+            label: 'No high-severity drift',
+            detail: (readiness['has_high_drift'] as bool? ?? false)
+                ? 'drift detected'
+                : 'clear',
+            pass: readiness['drift_ok'] as bool? ?? false,
+          ),
+
+          const SizedBox(height: 12),
+          const Divider(height: 1, color: AppColors.border),
+          const SizedBox(height: 10),
+
+          // ── Action buttons ───────────────────────────────────────────────
+          Row(
+            children: [
+              // Backfill button — always available
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: controls.isLoading
+                      ? null
+                      : () => _confirmBackfill(context, notifier),
+                  icon: const Icon(Icons.download_outlined, size: 14),
+                  label: const Text('Backfill Now'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: AppColors.primaryBlue,
+                    side: BorderSide(
+                      color: controls.isLoading
+                          ? AppColors.border
+                          : AppColors.primaryBlue.withValues(alpha: 0.5),
+                    ),
+                    padding: const EdgeInsets.symmetric(vertical: 9),
+                    textStyle: const TextStyle(
+                        fontSize: 11, fontWeight: FontWeight.w700),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              // Go Live button — only when ready and not already live
+              if (!isLive)
+                Expanded(
+                  child: ElevatedButton.icon(
+                    onPressed: (controls.isLoading || !ready)
+                        ? null
+                        : () => _confirmGoLive(context, notifier),
+                    icon: const Icon(Icons.rocket_launch_outlined, size: 14),
+                    label: const Text('Go Live'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: ready
+                          ? AppColors.gold
+                          : AppColors.surfaceGrey,
+                      foregroundColor: ready ? Colors.black87 : AppColors.textHint,
+                      padding: const EdgeInsets.symmetric(vertical: 9),
+                      textStyle: const TextStyle(
+                          fontSize: 11, fontWeight: FontWeight.w800),
+                    ),
+                  ),
+                )
+              else
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: controls.isLoading
+                        ? null
+                        : () => _confirmGoOffline(context, notifier),
+                    icon: const Icon(Icons.visibility_off_outlined, size: 14),
+                    label: const Text('Go Offline'),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: AppColors.error,
+                      side: BorderSide(
+                        color: controls.isLoading
+                            ? AppColors.border
+                            : AppColors.error.withValues(alpha: 0.45),
+                      ),
+                      padding: const EdgeInsets.symmetric(vertical: 9),
+                      textStyle: const TextStyle(
+                          fontSize: 11, fontWeight: FontWeight.w700),
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _confirmBackfill(
+    BuildContext context,
+    AiControlsNotifier notifier,
+  ) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Backfill Predictions?'),
+        content: const Text(
+          'This will generate AI predictions for all active auctions that '
+          'do not yet have a prediction.\n\n'
+          'The process runs in batches of 20 and may take a minute.',
+          style: TextStyle(fontSize: 13),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primaryBlue),
+            child: const Text('Start Backfill',
+                style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+    if (confirmed == true) notifier.backfillPredictions();
+  }
+
+  Future<void> _confirmGoLive(
+    BuildContext context,
+    AiControlsNotifier notifier,
+  ) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Go Live?'),
+        content: const Text(
+          'All readiness checks have passed.\n\n'
+          'This will make AI price insights visible to ALL clients on the '
+          'auction detail screen. You can revert using "Go Offline" at any time.',
+          style: TextStyle(fontSize: 13),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.gold),
+            child: const Text('Go Live',
+                style: TextStyle(
+                    color: Colors.black87, fontWeight: FontWeight.w800)),
+          ),
+        ],
+      ),
+    );
+    if (confirmed == true) notifier.goLive();
+  }
+
+  Future<void> _confirmGoOffline(
+    BuildContext context,
+    AiControlsNotifier notifier,
+  ) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Go Offline?'),
+        content: const Text(
+          'This will hide AI insights from clients immediately. '
+          'Predictions continue to be generated in shadow mode. '
+          'You can go live again whenever ready.',
+          style: TextStyle(fontSize: 13),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.error),
+            child: const Text('Go Offline',
+                style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+    if (confirmed == true) {
+      // reuse toggleFlag to set predictions_visible_to_clients = false
+      notifier.toggleFlag('ai.predictions_visible_to_clients', 'false');
+    }
+  }
+}
+
+class _CheckRow extends StatelessWidget {
+  const _CheckRow({
+    required this.label,
+    required this.detail,
+    required this.pass,
+  });
+  final String label, detail;
+  final bool pass;
+
+  @override
+  Widget build(BuildContext context) => Padding(
+        padding: const EdgeInsets.symmetric(vertical: 5),
+        child: Row(
+          children: [
+            Icon(
+              pass ? Icons.check_circle : Icons.radio_button_unchecked,
+              size: 16,
+              color: pass ? AppColors.success : AppColors.textHint,
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                label,
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: pass ? AppColors.textPrimary : AppColors.textSecondary,
+                ),
+              ),
+            ),
+            Text(
+              detail,
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w700,
+                color: pass ? AppColors.success : AppColors.textHint,
+              ),
+            ),
+          ],
+        ),
+      );
 }
 
 class _SectionShimmer extends StatelessWidget {
