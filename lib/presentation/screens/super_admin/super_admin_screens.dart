@@ -13,3 +13,4 @@ export 'national_reports_screen.dart';
 export 'super_admin_profile_screen.dart';
 export 'app_settings_screen.dart';
 export 'super_admin_notifications_screen.dart';
+export 'ai_dashboard_screen.dart';
