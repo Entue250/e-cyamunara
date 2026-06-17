@@ -235,6 +235,21 @@ final aiRecentEventsProvider =
   }
 });
 
+/// Single-row overall pipeline health from v_ai_pipeline_health (Phase 9J).
+/// Returns null if the view returns no rows (e.g. empty database).
+final aiPipelineHealthProvider =
+    FutureProvider<Map<String, dynamic>?>((ref) async {
+  try {
+    final row = await Supabase.instance.client
+        .from(SupabaseConstants.vAiPipelineHealth)
+        .select()
+        .maybeSingle();
+    return row as Map<String, dynamic>?;
+  } catch (_) {
+    return null;
+  }
+});
+
 // ─────────────────────────────────────────────────────────────────────────────
 // AI Manual Controls — AiDashboardScreen (Phase 9I)
 // ─────────────────────────────────────────────────────────────────────────────
@@ -277,6 +292,22 @@ class AiControlsNotifier extends StateNotifier<AiControlsState> {
       _run(SupabaseConstants.fnTriggerEarlyRetraining, {'trigger': 'manual'}, [
         aiDashboardOverviewProvider,
         aiRecentEventsProvider,
+      ]);
+
+  /// Rolls back [modelName] to its previous deprecated version via ai-model-rollback.
+  Future<bool> rollbackModel(String modelName) =>
+      _run(SupabaseConstants.fnAiModelRollback, {'model_name': modelName}, [
+        aiDashboardOverviewProvider,
+        aiRecentEventsProvider,
+        aiPipelineHealthProvider,
+      ]);
+
+  /// Acknowledges (clears) drift for [modelName] via resolve-model-drift.
+  Future<bool> resolveModelDrift(String modelName) =>
+      _run(SupabaseConstants.fnResolveDrift, {'model_name': modelName}, [
+        aiLatestDriftProvider,
+        aiRecentEventsProvider,
+        aiPipelineHealthProvider,
       ]);
 
   void clearError() => state = const AiControlsState();
