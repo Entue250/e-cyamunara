@@ -6,6 +6,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../app_router.dart' show AppRoutes;
@@ -14,6 +15,7 @@ import '../../../core/localization/app_localizations_ext.dart';
 import '../../../data/models/models.dart';
 import '../../../core/utils/formatters.dart';
 import '../../../core/utils/date_notification_helpers.dart';
+import 'client_providers.dart' show aiBidInsightsProvider;
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Bottom navigation — 4 fixed tabs (Home, Search, My Bids, Profile)
@@ -268,7 +270,7 @@ class AuctionPhotoPlaceholder extends StatelessWidget {
 // Bid tile — single row in My Bids list showing real auction data
 // ─────────────────────────────────────────────────────────────────────────────
 
-class BidTile extends StatelessWidget {
+class BidTile extends ConsumerWidget {
   const BidTile({
     super.key,
     required this.bid,
@@ -278,7 +280,7 @@ class BidTile extends StatelessWidget {
   final AuctionModel? auction;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final status = _resolveStatus(bid, auction);
     final statusColor = _statusColor(status);
     final statusLabel = status.toUpperCase();
@@ -381,6 +383,20 @@ class BidTile extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 4),
+                // ── AI insights chip (active auctions only, Phase 9M) ──────
+                if (auction?.auctionStatus == 'active')
+                  ref.watch(aiBidInsightsProvider(bid.auctionId)).whenOrNull(
+                        data: (ai) => ai == null
+                            ? null
+                            : Padding(
+                                padding: const EdgeInsets.only(bottom: 4),
+                                child: _BidAiRow(
+                                  ai: ai,
+                                  bidAmount: bid.bidAmount,
+                                ),
+                              ),
+                      ) ??
+                  const SizedBox.shrink(),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
@@ -466,6 +482,81 @@ class BidTile extends StatelessWidget {
         'lost' => AppColors.error,
         _ => AppColors.warning,
       };
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// AI row inside BidTile — win probability + value signal (Phase 9M)
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _BidAiRow extends StatelessWidget {
+  const _BidAiRow({required this.ai, required this.bidAmount});
+  final Map<String, dynamic> ai;
+  final double bidAmount;
+
+  String _signal(double? price) {
+    if (price == null || bidAmount <= 0) return 'FAIR';
+    if (price > bidAmount * 1.10) return 'UNDER';
+    if (price < bidAmount * 0.90) return 'OVER';
+    return 'FAIR';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final winProb   = (ai['win_probability'] as double?);
+    final price     = (ai['price_estimate'] as double?);
+    final signal    = _signal(price);
+
+    return Row(
+      children: [
+        if (winProb != null) ...[
+          const Icon(Icons.show_chart, size: 11, color: AppColors.textSecondary),
+          const SizedBox(width: 3),
+          Text(
+            '${(winProb * 100).toStringAsFixed(0)}% win',
+            style: const TextStyle(
+              fontSize: 10,
+              fontWeight: FontWeight.w700,
+              color: AppColors.textSecondary,
+            ),
+          ),
+          const SizedBox(width: 8),
+        ],
+        if (price != null)
+          _BidAiSignalPill(signal),
+      ],
+    );
+  }
+}
+
+class _BidAiSignalPill extends StatelessWidget {
+  const _BidAiSignalPill(this.signal);
+  final String signal;
+
+  @override
+  Widget build(BuildContext context) {
+    final (color, bg) = switch (signal) {
+      'UNDER' => (const Color(0xFF2E7D32), const Color(0xFFE8F5E9)),
+      'OVER'  => (AppColors.error,         const Color(0xFFFFEBEE)),
+      _       => (AppColors.warning,       const Color(0xFFFFF8E1)),
+    };
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(AppRadius.full),
+        border: Border.all(color: color.withValues(alpha: 0.4)),
+      ),
+      child: Text(
+        signal,
+        style: TextStyle(
+          fontSize: 9,
+          fontWeight: FontWeight.w800,
+          color: color,
+          letterSpacing: 0.5,
+        ),
+      ),
+    );
+  }
 }
 
 class _ThumbnailPlaceholder extends StatelessWidget {
