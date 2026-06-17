@@ -236,6 +236,86 @@ final aiRecentEventsProvider =
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
+// AI Manual Controls — AiDashboardScreen (Phase 9I)
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// Holds the in-flight / error state for super-admin AI write operations.
+/// All methods are single-lock: only one operation runs at a time.
+class AiControlsState {
+  final bool isLoading;
+  final String? error;
+  const AiControlsState({this.isLoading = false, this.error});
+}
+
+class AiControlsNotifier extends StateNotifier<AiControlsState> {
+  AiControlsNotifier(this._ref) : super(const AiControlsState());
+  final Ref _ref;
+
+  /// Toggles `ai.shadow_mode_enabled` or `ai.predictions_visible`.
+  Future<bool> toggleFlag(String key, String value) =>
+      _run(SupabaseConstants.fnToggleAiFlag, {'key': key, 'value': value}, [
+        aiDashboardOverviewProvider,
+      ]);
+
+  /// Force-promotes a candidate to active without waiting for the comparison gate.
+  Future<bool> promoteCandidate(String candidateId) =>
+      _run(SupabaseConstants.fnForcePromoteCandidate, {'candidate_id': candidateId}, [
+        aiCandidateModelsProvider,
+        aiDashboardOverviewProvider,
+        aiRecentEventsProvider,
+      ]);
+
+  /// Force-rejects an evaluating candidate and clears its shadow slot.
+  Future<bool> rejectCandidate(String candidateId) =>
+      _run(SupabaseConstants.fnForceRejectCandidate, {'candidate_id': candidateId}, [
+        aiCandidateModelsProvider,
+        aiRecentEventsProvider,
+      ]);
+
+  /// Manually triggers an early retraining run (calls trigger-early-retraining).
+  Future<bool> triggerRetrain() =>
+      _run(SupabaseConstants.fnTriggerEarlyRetraining, {'trigger': 'manual'}, [
+        aiDashboardOverviewProvider,
+        aiRecentEventsProvider,
+      ]);
+
+  void clearError() => state = const AiControlsState();
+
+  Future<bool> _run(
+    String fnName,
+    Map<String, dynamic> body,
+    List<ProviderOrFamily> toInvalidate,
+  ) async {
+    state = const AiControlsState(isLoading: true);
+    try {
+      final res = await Supabase.instance.client.functions.invoke(
+        fnName,
+        body: body,
+      );
+      // Supabase SDK throws FunctionsException on 4xx/5xx; check status anyway
+      // for edge cases where the SDK doesn't throw.
+      final data = res.data as Map<String, dynamic>?;
+      if (res.status != null && res.status! >= 400) {
+        throw Exception(data?['error'] ?? 'Server error ${res.status}');
+      }
+      for (final p in toInvalidate) {
+        _ref.invalidate(p);
+      }
+      state = const AiControlsState();
+      return true;
+    } catch (e) {
+      state = AiControlsState(error: e.toString().replaceFirst('Exception: ', ''));
+      return false;
+    }
+  }
+}
+
+final aiControlsProvider =
+    StateNotifierProvider<AiControlsNotifier, AiControlsState>(
+  (ref) => AiControlsNotifier(ref),
+);
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Date-range filtered stats — NationalReportsScreen only
 // ─────────────────────────────────────────────────────────────────────────────
 
