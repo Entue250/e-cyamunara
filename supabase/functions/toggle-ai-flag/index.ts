@@ -6,8 +6,8 @@
 // that governs the prediction pipeline's runtime behaviour.
 //
 // Permitted keys (others are rejected with 400):
-//   ai.shadow_mode_enabled   — run predictions silently in background
-//   ai.predictions_visible   — expose AI insights to client screens
+//   ai.shadow_mode_enabled           — run predictions silently in background
+//   ai.predictions_visible_to_clients — expose AI insights to client screens
 //
 // NOT permitted via this function (managed by their own flows):
 //   ai.retrain_pending             — set by trigger-early-retraining
@@ -21,7 +21,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const ALLOWED_KEYS = new Set([
   "ai.shadow_mode_enabled",
-  "ai.predictions_visible",
+  "ai.predictions_visible_to_clients",   // Phase 9J fix: correct flag key
 ]);
 
 serve(async (req: Request) => {
