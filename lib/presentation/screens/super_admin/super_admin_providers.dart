@@ -559,3 +559,26 @@ final superAdminFilteredStatsProvider =
     };
   }
 });
+
+// ─────────────────────────────────────────────────────────────────────────────
+// AI Metrics History — last 14 days from ai_shadow_metrics (Phase 9L)
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// Fetches the last 14 rows from ai_shadow_metrics ordered by date descending.
+/// Each row contains: metric_date, mape, coverage_rate, predictions_generated,
+/// prediction_errors. Used by _MetricsHistoryCard in AiDashboardScreen.
+final aiMetricsHistoryProvider =
+    FutureProvider<List<Map<String, dynamic>>>((ref) async {
+  try {
+    final rows = await Supabase.instance.client
+        .from(SupabaseConstants.aiShadowMetricsTable)
+        .select(
+          'metric_date, mape, coverage_rate, predictions_generated, prediction_errors',
+        )
+        .order('metric_date', ascending: false)
+        .limit(14);
+    return (rows as List).cast<Map<String, dynamic>>();
+  } catch (_) {
+    return [];
+  }
+});
