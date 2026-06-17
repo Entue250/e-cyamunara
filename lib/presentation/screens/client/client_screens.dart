@@ -24,5 +24,6 @@ export 'my_bids_screen.dart';
 export 'bid_confirmation_screen.dart';
 export 'profile_screen.dart';
 export 'notifications_screen.dart';
+export 'search_screen.dart';
 export 'client_shared.dart';
 export 'client_providers.dart';

@@ -40,6 +40,7 @@ class AppRoutes {
 
   // Client
   static const home            = '/home';
+  static const search          = '/search';
   static const auctionDetail   = '/auction/:id';
   static const myBids          = '/my-bids';
   static const bidConfirmation = '/bid-confirmation';
@@ -232,6 +233,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       // ── Client routes ────────────────────────────────────────────────────
       final isClientRoute =
           path.startsWith('/home')             ||
+          path.startsWith('/search')           ||
           path.startsWith('/auction')          ||
           path.startsWith('/my-bids')          ||
           path.startsWith('/bid-confirmation') ||
@@ -285,6 +287,8 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       // ── Client ────────────────────────────────────────────────────────────
       GoRoute(path: AppRoutes.home,
           builder: (_, s) => const HomeScreen()),
+      GoRoute(path: AppRoutes.search,
+          builder: (_, s) => const SearchScreen()),
       GoRoute(path: AppRoutes.auctionDetail,
           builder: (_, s) => AuctionDetailScreen(
               auctionId: s.pathParameters['id']!)),
