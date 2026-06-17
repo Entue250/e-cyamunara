@@ -151,6 +151,91 @@ final superAdminAuctionCountsProvider =
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
+// AI Intelligence providers — AiDashboardScreen (Phase 9H)
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// Single-row summary from v_ai_shadow_dashboard (super-admin view).
+/// Contains model versions, shadow mode flags, latest daily quality metrics,
+/// and all-time prediction totals.
+final aiDashboardOverviewProvider =
+    FutureProvider<Map<String, dynamic>>((ref) async {
+  try {
+    final row = await Supabase.instance.client
+        .from(SupabaseConstants.vAiShadowDashboard)
+        .select()
+        .maybeSingle();
+    return (row as Map<String, dynamic>?) ?? {};
+  } catch (_) {
+    return {};
+  }
+});
+
+/// All candidate models currently under evaluation (status = 'evaluating').
+final aiCandidateModelsProvider =
+    FutureProvider<List<Map<String, dynamic>>>((ref) async {
+  try {
+    final rows = await Supabase.instance.client
+        .from(SupabaseConstants.aiCandidateModelsTable)
+        .select(
+          'id, model_name, candidate_version, active_version_at_registration, '
+          'registered_at, comparisons_count, min_comparisons_needed, '
+          'candidate_mape, active_mape, status',
+        )
+        .eq('status', 'evaluating')
+        .order('registered_at', ascending: false);
+    return (rows as List).cast<Map<String, dynamic>>();
+  } catch (_) {
+    return [];
+  }
+});
+
+/// Latest drift row per model from the last 7 days.
+/// Returns at most 3 rows (one per model_a / model_b / model_c).
+final aiLatestDriftProvider =
+    FutureProvider<List<Map<String, dynamic>>>((ref) async {
+  try {
+    final cutoff = DateTime.now()
+        .subtract(const Duration(days: 7))
+        .toIso8601String()
+        .substring(0, 10);
+    final rows = await Supabase.instance.client
+        .from(SupabaseConstants.aiDriftMetricsTable)
+        .select(
+          'model_name, metric_date, drift_severity, drift_detected, '
+          'signals_triggered, mape_7d, mape_30d, early_retrain_triggered',
+        )
+        .gte('metric_date', cutoff)
+        .order('metric_date', ascending: false);
+
+    // Keep only the most recent row per model_name.
+    final seen = <String>{};
+    final result = <Map<String, dynamic>>[];
+    for (final row in (rows as List).cast<Map<String, dynamic>>()) {
+      if (seen.add(row['model_name'] as String)) result.add(row);
+    }
+    return result;
+  } catch (_) {
+    return [];
+  }
+});
+
+/// Most recent 10 AI prediction log entries for the events timeline.
+final aiRecentEventsProvider =
+    FutureProvider<List<Map<String, dynamic>>>((ref) async {
+  try {
+    final rows = await Supabase.instance.client
+        .from(SupabaseConstants.aiPredictionLogsTable)
+        .select('event_type, created_at, metadata, error_message')
+        .order('created_at', ascending: false)
+        .limit(10);
+    return (rows as List).cast<Map<String, dynamic>>();
+  } catch (_) {
+    return [];
+  }
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Date-range filtered stats — NationalReportsScreen only
 // ─────────────────────────────────────────────────────────────────────────────
 
