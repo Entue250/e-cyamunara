@@ -51,6 +51,8 @@ class SupabaseConstants {
   static const String fnForcePromoteCandidate  = 'force-promote-candidate';
   static const String fnForceRejectCandidate   = 'force-reject-candidate';
   static const String fnTriggerEarlyRetraining = 'trigger-early-retraining';
+  static const String fnAiModelRollback        = 'ai-model-rollback';
+  static const String fnResolveDrift           = 'resolve-model-drift';
 
   // ── OneSignal (push notifications) ───────────────────────────────────────
   static String get oneSignalAppId => dotenv.env['ONESIGNAL_APP_ID'] ?? '';
@@ -87,4 +89,5 @@ class SupabaseConstants {
   static const String aiCandidateModelsTable     = 'ai_candidate_models';
   static const String aiDriftMetricsTable        = 'ai_drift_metrics';
   static const String vAiShadowDashboard         = 'v_ai_shadow_dashboard';
+  static const String vAiPipelineHealth          = 'v_ai_pipeline_health';
 }
