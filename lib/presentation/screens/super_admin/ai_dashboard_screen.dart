@@ -72,6 +72,14 @@ class AiDashboardScreen extends ConsumerWidget {
                 error:   (_, _) => const _ErrorCard('Could not load system status'),
                 data:    (d) => _SystemStatusCard(data: d),
               ),
+              const SizedBox(height: 10),
+
+              // ── AI Controls (Phase 9I) ──────────────────────────────────
+              overviewAsync.when(
+                loading: () => const SizedBox.shrink(),
+                error:   (_, _) => const SizedBox.shrink(),
+                data:    (d) => _AiControlsCard(overviewData: d),
+              ),
               const SizedBox(height: 12),
 
               // ── Quality Metrics ─────────────────────────────────────────
@@ -514,19 +522,22 @@ class _MetricCell extends StatelessWidget {
 // Candidate card
 // ════════════════════════════════════════════════════════════════════════════
 
-class _CandidateCard extends StatelessWidget {
+class _CandidateCard extends ConsumerWidget {
   const _CandidateCard({required this.candidate});
   final Map<String, dynamic> candidate;
 
   @override
-  Widget build(BuildContext context) {
-    final modelName  = candidate['model_name'] as String? ?? '—';
-    final version    = candidate['candidate_version'] as String? ?? '—';
-    final compared   = candidate['comparisons_count'] as int? ?? 0;
-    final minNeeded  = candidate['min_comparisons_needed'] as int? ?? 100;
-    final candMape   = candidate['candidate_mape'] as num?;
+  Widget build(BuildContext context, WidgetRef ref) {
+    final controls  = ref.watch(aiControlsProvider);
+    final notifier  = ref.read(aiControlsProvider.notifier);
+    final id        = candidate['id'] as String? ?? '';
+    final modelName = candidate['model_name'] as String? ?? '—';
+    final version   = candidate['candidate_version'] as String? ?? '—';
+    final compared  = candidate['comparisons_count'] as int? ?? 0;
+    final minNeeded = candidate['min_comparisons_needed'] as int? ?? 100;
+    final candMape  = candidate['candidate_mape'] as num?;
     final activeMape = candidate['active_mape'] as num?;
-    final progress   = (minNeeded > 0 ? compared / minNeeded : 0.0).clamp(0.0, 1.0);
+    final progress  = (minNeeded > 0 ? compared / minNeeded : 0.0).clamp(0.0, 1.0);
 
     String? improvement;
     Color improvementColor = AppColors.textSecondary;
@@ -659,9 +670,102 @@ class _CandidateCard extends StatelessWidget {
               ],
             ),
           ],
+
+          // ── Manual controls (Phase 9I) ────────────────────────────────
+          const SizedBox(height: 12),
+          const Divider(height: 1, color: AppColors.border),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton(
+                  onPressed: (controls.isLoading || id.isEmpty)
+                      ? null
+                      : () => _confirm(
+                            context,
+                            'Force Promote',
+                            'Promote ${modelName.replaceAll("_", " ")} to active now, '
+                            'bypassing the ${minNeeded}-comparison gate?',
+                            AppColors.success,
+                            () => notifier.promoteCandidate(id),
+                          ),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: AppColors.success,
+                    side: BorderSide(
+                      color: controls.isLoading
+                          ? AppColors.border
+                          : AppColors.success.withValues(alpha: 0.55),
+                    ),
+                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    textStyle: const TextStyle(
+                        fontSize: 11, fontWeight: FontWeight.w700),
+                  ),
+                  child: const Text('Promote'),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: OutlinedButton(
+                  onPressed: (controls.isLoading || id.isEmpty)
+                      ? null
+                      : () => _confirm(
+                            context,
+                            'Force Reject',
+                            'Reject this ${modelName.replaceAll("_", " ")} candidate '
+                            'and clear its shadow slot?',
+                            AppColors.error,
+                            () => notifier.rejectCandidate(id),
+                          ),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: AppColors.error,
+                    side: BorderSide(
+                      color: controls.isLoading
+                          ? AppColors.border
+                          : AppColors.error.withValues(alpha: 0.55),
+                    ),
+                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    textStyle: const TextStyle(
+                        fontSize: 11, fontWeight: FontWeight.w700),
+                  ),
+                  child: const Text('Reject'),
+                ),
+              ),
+            ],
+          ),
         ],
       ),
     );
+  }
+
+  Future<void> _confirm(
+    BuildContext context,
+    String title,
+    String message,
+    Color color,
+    VoidCallback onConfirm,
+  ) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(title),
+        content: Text(message, style: const TextStyle(fontSize: 13)),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            style: ElevatedButton.styleFrom(backgroundColor: color),
+            child: const Text(
+              'Confirm',
+              style: TextStyle(color: Colors.white),
+            ),
+          ),
+        ],
+      ),
+    );
+    if (confirmed == true) onConfirm();
   }
 }
 
@@ -937,6 +1041,227 @@ class _SectionHeader extends StatelessWidget {
           const SizedBox(width: 6),
           Text(label, style: AppTextStyles.h1),
         ],
+      );
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// AI Controls card (Phase 9I)
+// ════════════════════════════════════════════════════════════════════════════
+
+class _AiControlsCard extends ConsumerWidget {
+  const _AiControlsCard({required this.overviewData});
+  final Map<String, dynamic> overviewData;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final controls = ref.watch(aiControlsProvider);
+    final notifier = ref.read(aiControlsProvider.notifier);
+
+    final shadowOn  = overviewData['shadow_mode_enabled'] == 'true';
+    final visibleOn = overviewData['predictions_visible'] == 'true';
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(AppRadius.lg),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Header
+          Row(
+            children: [
+              const Icon(Icons.tune_outlined,
+                  size: 15, color: AppColors.primaryBlue),
+              const SizedBox(width: 6),
+              const Text(
+                'CONTROLS',
+                style: TextStyle(
+                  color: AppColors.primaryBlue,
+                  fontSize: 10,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: 0.8,
+                ),
+              ),
+              if (controls.isLoading) ...[
+                const SizedBox(width: 8),
+                const SizedBox(
+                  width: 12,
+                  height: 12,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 1.5,
+                    color: AppColors.primaryBlue,
+                  ),
+                ),
+              ],
+            ],
+          ),
+
+          // Inline error
+          if (controls.error != null) ...[
+            const SizedBox(height: 6),
+            Row(
+              children: [
+                const Icon(Icons.error_outline,
+                    size: 12, color: AppColors.error),
+                const SizedBox(width: 4),
+                Expanded(
+                  child: Text(
+                    controls.error!,
+                    style: const TextStyle(
+                        fontSize: 10, color: AppColors.error),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+                GestureDetector(
+                  onTap: notifier.clearError,
+                  child: const Icon(Icons.close,
+                      size: 14, color: AppColors.textHint),
+                ),
+              ],
+            ),
+          ],
+
+          const SizedBox(height: 8),
+
+          _ToggleRow(
+            label: 'Shadow Mode',
+            subtitle: 'Run predictions silently — no client exposure',
+            value: shadowOn,
+            disabled: controls.isLoading,
+            onChanged: (v) => notifier.toggleFlag(
+              'ai.shadow_mode_enabled',
+              v ? 'true' : 'false',
+            ),
+          ),
+
+          const Divider(height: 1, color: AppColors.border),
+
+          _ToggleRow(
+            label: 'Visible to Clients',
+            subtitle: 'Show AI insights on the auction detail screen',
+            value: visibleOn,
+            disabled: controls.isLoading,
+            onChanged: (v) => notifier.toggleFlag(
+              'ai.predictions_visible',
+              v ? 'true' : 'false',
+            ),
+          ),
+
+          const SizedBox(height: 10),
+          const Divider(height: 1, color: AppColors.border),
+          const SizedBox(height: 10),
+
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              onPressed: controls.isLoading
+                  ? null
+                  : () => _confirmRetrain(context, notifier),
+              icon: const Icon(Icons.model_training, size: 15),
+              label: const Text('Trigger Retraining Now'),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: AppColors.warning,
+                side: BorderSide(
+                  color: controls.isLoading
+                      ? AppColors.border
+                      : AppColors.warning.withValues(alpha: 0.6),
+                ),
+                textStyle: const TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _confirmRetrain(
+    BuildContext context,
+    AiControlsNotifier notifier,
+  ) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Trigger Retraining?'),
+        content: const Text(
+          'This queues a full model retraining run using production data. '
+          'The training worker must be online for the job to complete.\n\n'
+          'If the training worker is offline, the retrain_pending flag is '
+          'still set and the job will run on the next scheduled start.',
+          style: TextStyle(fontSize: 13),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.warning),
+            child: const Text('Trigger',
+                style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+    if (confirmed == true) notifier.triggerRetrain();
+  }
+}
+
+class _ToggleRow extends StatelessWidget {
+  const _ToggleRow({
+    required this.label,
+    required this.subtitle,
+    required this.value,
+    required this.disabled,
+    required this.onChanged,
+  });
+  final String label, subtitle;
+  final bool value, disabled;
+  final ValueChanged<bool> onChanged;
+
+  @override
+  Widget build(BuildContext context) => Padding(
+        padding: const EdgeInsets.symmetric(vertical: 6),
+        child: Row(
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    label,
+                    style: const TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.textPrimary,
+                    ),
+                  ),
+                  Text(
+                    subtitle,
+                    style: const TextStyle(
+                      fontSize: 10,
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Switch(
+              value: value,
+              onChanged: disabled ? null : onChanged,
+              activeColor: AppColors.primaryBlue,
+            ),
+          ],
+        ),
       );
 }
 
