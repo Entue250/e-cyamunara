@@ -47,6 +47,10 @@ class SupabaseConstants {
   static const String fnAutoCloseAuctions = 'auto-close-auctions';
   static const String fnAiPredictPrice = 'ai-predict-price';
   static const String fnAiBidForecast = 'ai-bid-forecast';
+  static const String fnToggleAiFlag           = 'toggle-ai-flag';
+  static const String fnForcePromoteCandidate  = 'force-promote-candidate';
+  static const String fnForceRejectCandidate   = 'force-reject-candidate';
+  static const String fnTriggerEarlyRetraining = 'trigger-early-retraining';
 
   // ── OneSignal (push notifications) ───────────────────────────────────────
   static String get oneSignalAppId => dotenv.env['ONESIGNAL_APP_ID'] ?? '';
