@@ -44,11 +44,10 @@ COPY data_export/    data_export/
 COPY training/       training/
 COPY training_worker/ training_worker/
 
-# Persistent volume for job state and dataset snapshots
-VOLUME ["/app/data"]
-
-# Persistent volume for model artifacts shared with inference container
-VOLUME ["/app/trained_models"]
+# /app/data          — job state + dataset snapshots  (mount via Railway Volume)
+# /app/trained_models — model artifacts               (mount via Railway Volume)
+# VOLUME is intentionally omitted: Railway does not support Dockerfile VOLUME
+# instructions. Attach persistent volumes through the Railway service UI instead.
 
 EXPOSE 8001
 
