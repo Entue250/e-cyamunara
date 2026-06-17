@@ -197,3 +197,82 @@ ORDER BY jobname;
 -- PHASE 9D ROLLBACK:
 --   SELECT cron.unschedule('weekly-retraining');
 -- =============================================================================
+
+
+-- =============================================================================
+-- PHASE 9F — Promotion Engine (added 2026-06-17)
+-- Deploy these two Edge Functions first, then run the SQL below:
+--   supabase functions deploy collect-candidate-metrics
+--   supabase functions deploy promote-candidate
+-- Replace YOUR_SERVICE_ROLE_KEY with your actual key before running.
+-- =============================================================================
+
+-- ── Step G: Remove existing Phase 9F jobs (idempotent re-run safety) ─────────
+SELECT cron.unschedule('collect-candidate-metrics')
+WHERE EXISTS (
+  SELECT 1 FROM cron.job WHERE jobname = 'collect-candidate-metrics'
+);
+
+SELECT cron.unschedule('promote-candidate')
+WHERE EXISTS (
+  SELECT 1 FROM cron.job WHERE jobname = 'promote-candidate'
+);
+
+-- ── Step G1: Collect candidate metrics daily at 03:00 UTC ────────────────────
+-- 1 hour after collect-ai-shadow-metrics (02:00 UTC); 30 min before
+-- promote-candidate (03:30 UTC). Aggregates MAPE from ai_prediction_comparisons
+-- into ai_candidate_models so that promote-candidate can evaluate gates.
+SELECT cron.schedule(
+  'collect-candidate-metrics',
+  '0 3 * * *',
+  $$
+    SELECT net.http_post(
+      url     := 'https://ltpcbsapeshskdnvtlru.supabase.co/functions/v1/collect-candidate-metrics',
+      headers := '{"Authorization":"Bearer YOUR_SERVICE_ROLE_KEY","Content-Type":"application/json"}'::jsonb,
+      body    := '{}'::jsonb
+    )
+  $$
+);
+
+-- ── Step G2: Evaluate promotion gates daily at 03:30 UTC ─────────────────────
+-- 30 minutes after collect-candidate-metrics so metrics are fresh.
+-- Promotes, rejects, or expires each evaluating candidate based on the gate:
+--   comparisons_count >= min_comparisons_needed
+--   AND candidate_mape < active_mape * 0.97 (3% improvement required)
+SELECT cron.schedule(
+  'promote-candidate',
+  '30 3 * * *',
+  $$
+    SELECT net.http_post(
+      url     := 'https://ltpcbsapeshskdnvtlru.supabase.co/functions/v1/promote-candidate',
+      headers := '{"Authorization":"Bearer YOUR_SERVICE_ROLE_KEY","Content-Type":"application/json"}'::jsonb,
+      body    := '{}'::jsonb
+    )
+  $$
+);
+
+-- ── Step H: Verify all 8 jobs are active ─────────────────────────────────────
+SELECT jobid, jobname, schedule, active
+FROM cron.job
+ORDER BY jobname;
+-- Expected 8 rows:
+--   cleanup-notifications          0 22 * * 0
+--   close-auctions                 */5 * * * *
+--   collect-ai-shadow-metrics      0 2 * * *
+--   collect-candidate-metrics      0 3 * * *
+--   compute-prediction-comparison  */10 * * * *
+--   generate-auction-price-estimate 0 * * * *
+--   promote-candidate              30 3 * * *
+--   weekly-retraining              0 3 * * 0
+
+-- =============================================================================
+-- PHASE 4B ROLLBACK (remove Phase 4B jobs only):
+--   SELECT cron.unschedule('generate-auction-price-estimate');
+--   SELECT cron.unschedule('compute-prediction-comparison');
+--   SELECT cron.unschedule('collect-ai-shadow-metrics');
+-- PHASE 9D ROLLBACK:
+--   SELECT cron.unschedule('weekly-retraining');
+-- PHASE 9F ROLLBACK:
+--   SELECT cron.unschedule('collect-candidate-metrics');
+--   SELECT cron.unschedule('promote-candidate');
+-- =============================================================================
