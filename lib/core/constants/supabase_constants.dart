@@ -73,4 +73,14 @@ class SupabaseConstants {
   static const String statusActive = 'active';
   static const String statusClosed = 'closed';
   static const String statusCancelled = 'cancelled';
+
+  // ── AI Intelligence tables & views (Phase 4B–9H) ──────────────────────────
+  static const String aiFeatureFlagsTable        = 'ai_feature_flags';
+  static const String aiPredictionsTable         = 'ai_predictions';
+  static const String aiPredictionLogsTable      = 'ai_prediction_logs';
+  static const String aiPredictionComparisonsTable = 'ai_prediction_comparisons';
+  static const String aiShadowMetricsTable       = 'ai_shadow_metrics';
+  static const String aiCandidateModelsTable     = 'ai_candidate_models';
+  static const String aiDriftMetricsTable        = 'ai_drift_metrics';
+  static const String vAiShadowDashboard         = 'v_ai_shadow_dashboard';
 }
