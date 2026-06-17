@@ -33,11 +33,12 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libgomp1 \
     && rm -rf /var/lib/apt/lists/*
 
-# Install Python dependencies
+# Install Python dependencies.
+# requirements.txt        — training/data deps (pandas, xgboost, pyarrow, supabase…)
+# inference/requirements.txt — adds fastapi, uvicorn, pydantic, httpx (superset)
+COPY requirements.txt requirements.txt
 COPY inference/requirements.txt requirements_inference.txt
-COPY requirements.txt requirements.txt 2>/dev/null || true
-RUN pip install --no-cache-dir -r requirements_inference.txt && \
-    pip install --no-cache-dir uvicorn[standard] fastapi
+RUN pip install --no-cache-dir -r requirements.txt -r requirements_inference.txt
 
 # Copy only the backend/ai subtree (context is the backend/ai directory)
 COPY data_export/    data_export/
