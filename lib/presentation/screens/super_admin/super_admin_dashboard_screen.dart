@@ -287,6 +287,13 @@ class SuperAdminDashboardScreen extends ConsumerWidget {
                           ),
                         ],
                       ),
+                      const SizedBox(height: 10),
+                      _QuickActionCard(
+                        icon: Icons.psychology_outlined,
+                        label: 'AI Intelligence',
+                        color: AppColors.success,
+                        onTap: () => context.go(AppRoutes.superAiDashboard),
+                      ),
                       const SizedBox(height: 16),
                     ],
                   ),
