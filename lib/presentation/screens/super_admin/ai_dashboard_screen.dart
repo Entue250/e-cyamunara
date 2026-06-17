@@ -28,6 +28,7 @@ class AiDashboardScreen extends ConsumerWidget {
     ref.invalidate(aiCandidateModelsProvider);
     ref.invalidate(aiLatestDriftProvider);
     ref.invalidate(aiRecentEventsProvider);
+    ref.invalidate(aiPipelineHealthProvider);
   }
 
   @override
@@ -36,6 +37,7 @@ class AiDashboardScreen extends ConsumerWidget {
     final candidatesAsync = ref.watch(aiCandidateModelsProvider);
     final driftAsync      = ref.watch(aiLatestDriftProvider);
     final eventsAsync     = ref.watch(aiRecentEventsProvider);
+    final healthAsync     = ref.watch(aiPipelineHealthProvider);
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -66,6 +68,16 @@ class AiDashboardScreen extends ConsumerWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // ── Pipeline Health Banner (Phase 9J) ───────────────────────
+              healthAsync.when(
+                loading: () => const SizedBox.shrink(),
+                error:   (_, _) => const SizedBox.shrink(),
+                data:    (h) => h == null
+                    ? const SizedBox.shrink()
+                    : _PipelineHealthBanner(health: h),
+              ),
+              const SizedBox(height: 10),
+
               // ── System Status ───────────────────────────────────────────
               overviewAsync.when(
                 loading: () => const _SectionShimmer(),
@@ -79,6 +91,14 @@ class AiDashboardScreen extends ConsumerWidget {
                 loading: () => const SizedBox.shrink(),
                 error:   (_, _) => const SizedBox.shrink(),
                 data:    (d) => _AiControlsCard(overviewData: d),
+              ),
+              const SizedBox(height: 12),
+
+              // ── Model Versions & Rollback (Phase 9J) ────────────────────
+              overviewAsync.when(
+                loading: () => const SizedBox.shrink(),
+                error:   (_, _) => const SizedBox.shrink(),
+                data:    (d) => _ModelVersionsCard(overviewData: d),
               ),
               const SizedBox(height: 12),
 
@@ -685,7 +705,7 @@ class _CandidateCard extends ConsumerWidget {
                             context,
                             'Force Promote',
                             'Promote ${modelName.replaceAll("_", " ")} to active now, '
-                            'bypassing the ${minNeeded}-comparison gate?',
+                            'bypassing the $minNeeded-comparison gate?',
                             AppColors.success,
                             () => notifier.promoteCandidate(id),
                           ),
@@ -773,12 +793,14 @@ class _CandidateCard extends ConsumerWidget {
 // Drift row
 // ════════════════════════════════════════════════════════════════════════════
 
-class _DriftRow extends StatelessWidget {
+class _DriftRow extends ConsumerWidget {
   const _DriftRow({required this.drift});
   final Map<String, dynamic> drift;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final controls  = ref.watch(aiControlsProvider);
+    final notifier  = ref.read(aiControlsProvider.notifier);
     final modelName = drift['model_name'] as String? ?? '—';
     final severity  = drift['drift_severity'] as String? ?? 'none';
     final date      = drift['metric_date'] as String? ?? '—';
@@ -786,6 +808,7 @@ class _DriftRow extends StatelessWidget {
     final mape7d    = drift['mape_7d'] as num?;
     final mape30d   = drift['mape_30d'] as num?;
     final retrain   = drift['early_retrain_triggered'] as bool? ?? false;
+    final hasDrift  = drift['drift_detected'] as bool? ?? false;
 
     final severityColor = switch (severity) {
       'high' => AppColors.error,
@@ -806,112 +829,179 @@ class _DriftRow extends StatelessWidget {
           width: severity == 'none' ? 1 : 1.5,
         ),
       ),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Severity indicator
-          Container(
-            width: 40,
-            height: 40,
-            decoration: BoxDecoration(
-              color: severityColor.withValues(alpha: 0.12),
-              shape: BoxShape.circle,
-            ),
-            child: Icon(
-              severity == 'high'
-                  ? Icons.warning_amber_rounded
-                  : severity == 'low'
-                      ? Icons.info_outline
-                      : Icons.check_circle_outline,
-              size: 20,
-              color: severityColor,
-            ),
-          ),
-          const SizedBox(width: 12),
-
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Text(
-                      modelName.replaceAll('_', ' ').toUpperCase(),
-                      style: const TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w800,
-                        color: AppColors.textPrimary,
-                      ),
-                    ),
-                    const SizedBox(width: 6),
-                    Text(
-                      date,
-                      style: const TextStyle(
-                          fontSize: 10, color: AppColors.textHint),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 4),
-                if (signals.isNotEmpty)
-                  Text(
-                    signals.join(' · '),
-                    style: TextStyle(
-                      fontSize: 10,
-                      color: severityColor,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  )
-                else
-                  const Text(
-                    'No signals triggered',
-                    style: TextStyle(
-                        fontSize: 10, color: AppColors.textSecondary),
-                  ),
-                if (mape7d != null && mape30d != null)
-                  Text(
-                    'MAPE 7d: ${(mape7d * 100).toStringAsFixed(1)}%  '
-                    '30d: ${(mape30d * 100).toStringAsFixed(1)}%',
-                    style: const TextStyle(
-                        fontSize: 10, color: AppColors.textSecondary),
-                  ),
-              ],
-            ),
-          ),
-
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
+          Row(
             children: [
+              // Severity indicator
               Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                width: 40,
+                height: 40,
                 decoration: BoxDecoration(
                   color: severityColor.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(AppRadius.full),
+                  shape: BoxShape.circle,
                 ),
-                child: Text(
-                  severity.toUpperCase(),
-                  style: TextStyle(
-                    fontSize: 9,
-                    fontWeight: FontWeight.w800,
-                    color: severityColor,
-                  ),
+                child: Icon(
+                  severity == 'high'
+                      ? Icons.warning_amber_rounded
+                      : severity == 'low'
+                          ? Icons.info_outline
+                          : Icons.check_circle_outline,
+                  size: 20,
+                  color: severityColor,
                 ),
               ),
-              if (retrain) ...[
-                const SizedBox(height: 4),
-                const Text(
-                  'Retrain triggered',
-                  style: TextStyle(
-                    fontSize: 9,
-                    color: AppColors.warning,
-                    fontWeight: FontWeight.w600,
-                  ),
+              const SizedBox(width: 12),
+
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Text(
+                          modelName.replaceAll('_', ' ').toUpperCase(),
+                          style: const TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w800,
+                            color: AppColors.textPrimary,
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        Text(
+                          date,
+                          style: const TextStyle(
+                              fontSize: 10, color: AppColors.textHint),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    if (signals.isNotEmpty)
+                      Text(
+                        signals.join(' · '),
+                        style: TextStyle(
+                          fontSize: 10,
+                          color: severityColor,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      )
+                    else
+                      const Text(
+                        'No signals triggered',
+                        style: TextStyle(
+                            fontSize: 10, color: AppColors.textSecondary),
+                      ),
+                    if (mape7d != null && mape30d != null)
+                      Text(
+                        'MAPE 7d: ${(mape7d * 100).toStringAsFixed(1)}%  '
+                        '30d: ${(mape30d * 100).toStringAsFixed(1)}%',
+                        style: const TextStyle(
+                            fontSize: 10, color: AppColors.textSecondary),
+                      ),
+                  ],
                 ),
-              ],
+              ),
+
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: severityColor.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(AppRadius.full),
+                    ),
+                    child: Text(
+                      severity.toUpperCase(),
+                      style: TextStyle(
+                        fontSize: 9,
+                        fontWeight: FontWeight.w800,
+                        color: severityColor,
+                      ),
+                    ),
+                  ),
+                  if (retrain) ...[
+                    const SizedBox(height: 4),
+                    const Text(
+                      'Retrain triggered',
+                      style: TextStyle(
+                        fontSize: 9,
+                        color: AppColors.warning,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ],
+              ),
             ],
+          ),
+
+          // ── Acknowledge button (only shown when drift is active) ────────
+          if (hasDrift && severity != 'none') ...[
+            const SizedBox(height: 10),
+            const Divider(height: 1, color: AppColors.border),
+            const SizedBox(height: 8),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                onPressed: controls.isLoading
+                    ? null
+                    : () => _confirmAcknowledge(context, modelName, notifier),
+                icon: const Icon(Icons.check_circle_outline, size: 14),
+                label: const Text('Acknowledge Drift'),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: AppColors.textSecondary,
+                  side: BorderSide(
+                    color: controls.isLoading
+                        ? AppColors.border
+                        : AppColors.border,
+                  ),
+                  padding: const EdgeInsets.symmetric(vertical: 8),
+                  textStyle: const TextStyle(
+                      fontSize: 11, fontWeight: FontWeight.w600),
+                ),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Future<void> _confirmAcknowledge(
+    BuildContext context,
+    String modelName,
+    AiControlsNotifier notifier,
+  ) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Acknowledge Drift?'),
+        content: Text(
+          'Mark today\'s drift alert for ${modelName.replaceAll("_", " ")} as acknowledged. '
+          'The drift will be cleared until the next scheduled check at 04:00 UTC.',
+          style: const TextStyle(fontSize: 13),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primaryBlue),
+            child: const Text(
+              'Acknowledge',
+              style: TextStyle(color: Colors.white),
+            ),
           ),
         ],
       ),
     );
+    if (confirmed == true) notifier.resolveModelDrift(modelName);
   }
 }
 
@@ -991,6 +1081,7 @@ class _EventRow extends StatelessWidget {
         'early_retrain_triggered' => Icons.fast_forward_outlined,
         'drift_detected'          => Icons.warning_amber_outlined,
         'drift_resolved'          => Icons.check_circle_outline,
+        'model_rolled_back'       => Icons.history_outlined,
         _                         => Icons.info_outline,
       };
 
@@ -1006,6 +1097,7 @@ class _EventRow extends StatelessWidget {
         'early_retrain_triggered' => AppColors.warning,
         'drift_detected'          => AppColors.warning,
         'drift_resolved'          => AppColors.success,
+        'model_rolled_back'       => AppColors.warning,
         _                         => AppColors.textSecondary,
       };
 
@@ -1021,6 +1113,7 @@ class _EventRow extends StatelessWidget {
         'early_retrain_triggered' => 'Early Retrain Triggered',
         'drift_detected'          => 'Drift Detected',
         'drift_resolved'          => 'Drift Resolved',
+        'model_rolled_back'       => 'Model Rolled Back',
         _                         => type.replaceAll('_', ' '),
       };
 }
@@ -1146,7 +1239,7 @@ class _AiControlsCard extends ConsumerWidget {
             value: visibleOn,
             disabled: controls.isLoading,
             onChanged: (v) => notifier.toggleFlag(
-              'ai.predictions_visible',
+              'ai.predictions_visible_to_clients',
               v ? 'true' : 'false',
             ),
           ),
@@ -1263,6 +1356,237 @@ class _ToggleRow extends StatelessWidget {
           ],
         ),
       );
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// Pipeline Health Banner (Phase 9J)
+// ════════════════════════════════════════════════════════════════════════════
+
+class _PipelineHealthBanner extends StatelessWidget {
+  const _PipelineHealthBanner({required this.health});
+  final Map<String, dynamic> health;
+
+  @override
+  Widget build(BuildContext context) {
+    final status = health['pipeline_health'] as String? ?? 'ok';
+    final reason = health['health_reason'] as String? ?? 'All systems nominal';
+
+    final (bgColor, borderColor, iconData, labelColor) = switch (status) {
+      'critical' => (
+          AppColors.error.withValues(alpha: 0.08),
+          AppColors.error.withValues(alpha: 0.45),
+          Icons.error_outline,
+          AppColors.error,
+        ),
+      'degraded' => (
+          AppColors.warning.withValues(alpha: 0.08),
+          AppColors.warning.withValues(alpha: 0.45),
+          Icons.warning_amber_outlined,
+          AppColors.warning,
+        ),
+      _ => (
+          AppColors.success.withValues(alpha: 0.08),
+          AppColors.success.withValues(alpha: 0.35),
+          Icons.check_circle_outline,
+          AppColors.success,
+        ),
+    };
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
+      decoration: BoxDecoration(
+        color: bgColor,
+        borderRadius: BorderRadius.circular(AppRadius.lg),
+        border: Border.all(color: borderColor),
+      ),
+      child: Row(
+        children: [
+          Icon(iconData, size: 18, color: labelColor),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Pipeline: ${status.toUpperCase()}',
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w800,
+                    color: labelColor,
+                    letterSpacing: 0.5,
+                  ),
+                ),
+                Text(
+                  reason,
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: labelColor.withValues(alpha: 0.8),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// Model Versions & Rollback card (Phase 9J)
+// ════════════════════════════════════════════════════════════════════════════
+
+class _ModelVersionsCard extends ConsumerWidget {
+  const _ModelVersionsCard({required this.overviewData});
+  final Map<String, dynamic> overviewData;
+
+  static const _models = ['model_a', 'model_b', 'model_c'];
+  static const _labels = ['Model A', 'Model B', 'Model C'];
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final controls = ref.watch(aiControlsProvider);
+    final notifier = ref.read(aiControlsProvider.notifier);
+
+    final versions = {
+      'model_a': overviewData['model_a_version'] as String? ?? '—',
+      'model_b': overviewData['model_b_version'] as String? ?? '—',
+      'model_c': overviewData['model_c_version'] as String? ?? '—',
+    };
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(AppRadius.lg),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'MODEL ROLLBACK',
+            style: TextStyle(
+              color: AppColors.textSecondary,
+              fontSize: 10,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 0.8,
+            ),
+          ),
+          const SizedBox(height: 12),
+          for (var i = 0; i < _models.length; i++) ...[
+            if (i > 0) const Divider(height: 12, color: AppColors.border),
+            Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        _labels[i],
+                        style: const TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.textPrimary,
+                        ),
+                      ),
+                      Text(
+                        versions[_models[i]]!,
+                        style: const TextStyle(
+                          fontSize: 10,
+                          color: AppColors.textSecondary,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ),
+                ),
+                OutlinedButton(
+                  onPressed: controls.isLoading
+                      ? null
+                      : () => _confirmRollback(
+                            context,
+                            _models[i],
+                            _labels[i],
+                            notifier,
+                          ),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: AppColors.textSecondary,
+                    side: BorderSide(
+                      color: controls.isLoading
+                          ? AppColors.border
+                          : AppColors.border,
+                    ),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 12, vertical: 6),
+                    textStyle: const TextStyle(
+                        fontSize: 11, fontWeight: FontWeight.w600),
+                  ),
+                  child: const Text('Roll Back'),
+                ),
+              ],
+            ),
+          ],
+          if (controls.error != null) ...[
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                const Icon(Icons.error_outline,
+                    size: 12, color: AppColors.error),
+                const SizedBox(width: 4),
+                Expanded(
+                  child: Text(
+                    controls.error!,
+                    style: const TextStyle(
+                        fontSize: 10, color: AppColors.error),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Future<void> _confirmRollback(
+    BuildContext context,
+    String modelName,
+    String label,
+    AiControlsNotifier notifier,
+  ) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text('Roll Back $label?'),
+        content: Text(
+          'This will revert $label to its most recently deprecated version. '
+          'The model will switch live — no restart required.\n\n'
+          'Roll back only if the current version is causing issues.',
+          style: const TextStyle(fontSize: 13),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.warning),
+            child: const Text(
+              'Roll Back',
+              style: TextStyle(color: Colors.white),
+            ),
+          ),
+        ],
+      ),
+    );
+    if (confirmed == true) notifier.rollbackModel(modelName);
+  }
 }
 
 class _SectionShimmer extends StatelessWidget {
