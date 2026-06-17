@@ -185,3 +185,47 @@ final aiBidInsightsProvider =
   if (priceEstimate == null && winProbability == null) return null;
   return {'price_estimate': priceEstimate, 'win_probability': winProbability};
 });
+
+// ─────────────────────────────────────────────────────────────────────────────
+// AI auction value badge — UNDER / FAIR / OVER for home-screen cards (Phase 9N)
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// Compares the AI auction_price_estimate against the auction's starting_price
+/// (the bid floor set by the region admin — no client can bid below this).
+///
+/// Signal:
+///   UNDER → estimate > startingPrice × 1.15  (market value well above minimum)
+///   OVER  → estimate < startingPrice × 0.95  (AI thinks floor is too high)
+///   FAIR  → everything in between
+///
+/// Returns null when predictions_visible_to_clients is false, no prediction
+/// exists, or startingPrice is zero.
+final aiAuctionBadgeProvider =
+    FutureProvider.family<String?, ({String auctionId, double startingPrice})>(
+        (ref, args) async {
+  if (args.auctionId.isEmpty || args.startingPrice <= 0) return null;
+  final client = Supabase.instance.client;
+
+  final flagRow = await client
+      .from(SupabaseConstants.aiFeatureFlagsTable)
+      .select('value')
+      .eq('key', 'ai.predictions_visible_to_clients')
+      .maybeSingle();
+  if ((flagRow)?['value'] != 'true') return null;
+
+  final row = await client
+      .from(SupabaseConstants.aiPredictionsTable)
+      .select('predicted_value')
+      .eq('auction_id', args.auctionId)
+      .eq('prediction_type', 'auction_price_estimate')
+      .eq('model_stage', 'shadow')
+      .maybeSingle();
+
+  final estimate = (row?['predicted_value'] as num?)?.toDouble();
+  if (estimate == null) return null;
+
+  final floor = args.startingPrice;
+  if (estimate > floor * 1.15) return 'UNDER';
+  if (estimate < floor * 0.95) return 'OVER';
+  return 'FAIR';
+});
