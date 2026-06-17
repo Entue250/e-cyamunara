@@ -68,6 +68,7 @@ class AppRoutes {
   static const superProfile         = '/super/profile';        // Super admin profile
   static const superSettings        = '/super/settings';       // App settings
   static const superNotifications   = '/super/notifications';  // Super admin notifications
+  static const superAiDashboard    = '/super/ai-dashboard';   // AI Intelligence dashboard
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -343,6 +344,8 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           builder: (_, s) => const AppSettingsScreen()),       // App settings
       GoRoute(path: AppRoutes.superNotifications,
           builder: (_, s) => const SuperAdminNotificationsScreen()),
+      GoRoute(path: AppRoutes.superAiDashboard,
+          builder: (_, s) => const AiDashboardScreen()),
     ],
 
     // ── Error page ─────────────────────────────────────────────────────────
