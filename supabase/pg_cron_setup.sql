@@ -276,3 +276,66 @@ ORDER BY jobname;
 --   SELECT cron.unschedule('collect-candidate-metrics');
 --   SELECT cron.unschedule('promote-candidate');
 -- =============================================================================
+
+
+-- =============================================================================
+-- PHASE 9G — Drift Detection (added 2026-06-17)
+-- Deploy this Edge Function first, then run the SQL below:
+--   supabase functions deploy check-model-drift
+--   supabase functions deploy trigger-early-retraining
+-- Replace YOUR_SERVICE_ROLE_KEY with your actual key before running.
+-- Note: trigger-early-retraining is called by check-model-drift automatically
+--       (no separate cron needed); the cron only schedules check-model-drift.
+-- =============================================================================
+
+-- ── Step I: Remove existing Phase 9G job (idempotent re-run safety) ──────────
+SELECT cron.unschedule('check-model-drift')
+WHERE EXISTS (
+  SELECT 1 FROM cron.job WHERE jobname = 'check-model-drift'
+);
+
+-- ── Step I1: Check for model drift daily at 04:00 UTC ────────────────────────
+-- 30 minutes after promote-candidate (03:30 UTC) so promotion results are
+-- already reflected in ai_prediction_comparisons before drift is evaluated.
+-- If drift_severity = 'high' for any model, check-model-drift self-invokes
+-- trigger-early-retraining automatically (no separate cron needed).
+SELECT cron.schedule(
+  'check-model-drift',
+  '0 4 * * *',
+  $$
+    SELECT net.http_post(
+      url     := 'https://ltpcbsapeshskdnvtlru.supabase.co/functions/v1/check-model-drift',
+      headers := '{"Authorization":"Bearer YOUR_SERVICE_ROLE_KEY","Content-Type":"application/json"}'::jsonb,
+      body    := '{}'::jsonb
+    )
+  $$
+);
+
+-- ── Step J: Verify all 9 jobs are active ─────────────────────────────────────
+SELECT jobid, jobname, schedule, active
+FROM cron.job
+ORDER BY jobname;
+-- Expected 9 rows (8 if weekly-retraining was skipped — see Step E note):
+--   check-model-drift              0 4 * * *          ← Phase 9G
+--   cleanup-notifications          0 22 * * 0
+--   close-auctions                 */5 * * * *
+--   collect-ai-shadow-metrics      0 2 * * *
+--   collect-candidate-metrics      0 3 * * *
+--   compute-prediction-comparison  */10 * * * *
+--   generate-auction-price-estimate 0 * * * *
+--   promote-candidate              30 3 * * *
+--   weekly-retraining              0 3 * * 0          ← Phase 9D (requires TRAINING_WORKER_URL)
+
+-- =============================================================================
+-- PHASE 4B ROLLBACK (remove Phase 4B jobs only):
+--   SELECT cron.unschedule('generate-auction-price-estimate');
+--   SELECT cron.unschedule('compute-prediction-comparison');
+--   SELECT cron.unschedule('collect-ai-shadow-metrics');
+-- PHASE 9D ROLLBACK:
+--   SELECT cron.unschedule('weekly-retraining');
+-- PHASE 9F ROLLBACK:
+--   SELECT cron.unschedule('collect-candidate-metrics');
+--   SELECT cron.unschedule('promote-candidate');
+-- PHASE 9G ROLLBACK:
+--   SELECT cron.unschedule('check-model-drift');
+-- =============================================================================
