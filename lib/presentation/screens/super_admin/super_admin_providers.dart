@@ -251,6 +251,107 @@ final aiPipelineHealthProvider =
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Graduation readiness — Phase 9K
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// Aggregates all data needed to decide whether the AI system is ready to
+/// graduate from shadow mode to live (predictions_visible_to_clients = true).
+///
+/// Returns a map with the keys:
+///   coverage_rate          double?  — latest coverage from ai_shadow_metrics
+///   rolling_mape           double?  — rolling MAPE from ai_shadow_metrics
+///   shadow_days            int      — number of days with metrics rows (proxy for age)
+///   comparisons_count      int      — total rows in ai_prediction_comparisons
+///   has_high_drift         bool     — any high-drift in last 7 days
+///   predictions_visible    bool     — current value of predictions_visible_to_clients
+///   coverage_ok            bool     — coverage_rate >= 0.80
+///   mape_ok                bool     — rolling_mape <= 0.25 (or null data)
+///   shadow_age_ok          bool     — shadow_days >= 7
+///   comparisons_ok         bool     — comparisons_count >= 50
+///   drift_ok               bool     — !has_high_drift
+///   ready                  bool     — all five checks pass
+final aiGraduationReadinessProvider =
+    FutureProvider<Map<String, dynamic>>((ref) async {
+  final client = Supabase.instance.client;
+  try {
+    final cutoff = DateTime.now()
+        .subtract(const Duration(days: 7))
+        .toIso8601String()
+        .substring(0, 10);
+
+    final results = await Future.wait([
+      // Latest shadow metrics row
+      client
+          .from(SupabaseConstants.aiShadowMetricsTable)
+          .select('coverage_rate, rolling_mape_model_a')
+          .order('metric_date', ascending: false)
+          .limit(1),
+      // Count of total shadow metrics rows (= days in shadow mode)
+      client
+          .from(SupabaseConstants.aiShadowMetricsTable)
+          .select('metric_date'),
+      // Total prediction comparisons
+      client
+          .from(SupabaseConstants.aiPredictionComparisonsTable)
+          .select('id'),
+      // High drift in last 7 days
+      client
+          .from(SupabaseConstants.aiDriftMetricsTable)
+          .select('drift_severity')
+          .gte('metric_date', cutoff)
+          .eq('drift_severity', 'high'),
+      // Current visibility flag
+      client
+          .from(SupabaseConstants.aiFeatureFlagsTable)
+          .select('value')
+          .eq('key', 'ai.predictions_visible_to_clients')
+          .maybeSingle(),
+    ]);
+
+    final latestMetrics  = (results[0] as List).isNotEmpty
+        ? (results[0] as List).first as Map<String, dynamic>
+        : null;
+    final shadowDays     = (results[1] as List).length;
+    final comparisons    = (results[2] as List).length;
+    final highDriftRows  = (results[3] as List).length;
+    final flagRow        = results[4] as Map<String, dynamic>?;
+
+    final coverageRate  = (latestMetrics?['coverage_rate'] as num?)?.toDouble();
+    final rollingMape   = (latestMetrics?['rolling_mape_model_a'] as num?)?.toDouble();
+    final predictionsVisible = flagRow?['value'] == 'true';
+
+    final coverageOk    = (coverageRate ?? 0) >= 0.80;
+    final mapeOk        = rollingMape == null || rollingMape <= 0.25;
+    final shadowAgeOk   = shadowDays >= 7;
+    final comparisonsOk = comparisons >= 50;
+    final driftOk       = highDriftRows == 0;
+
+    return {
+      'coverage_rate':       coverageRate,
+      'rolling_mape':        rollingMape,
+      'shadow_days':         shadowDays,
+      'comparisons_count':   comparisons,
+      'has_high_drift':      highDriftRows > 0,
+      'predictions_visible': predictionsVisible,
+      'coverage_ok':         coverageOk,
+      'mape_ok':             mapeOk,
+      'shadow_age_ok':       shadowAgeOk,
+      'comparisons_ok':      comparisonsOk,
+      'drift_ok':            driftOk,
+      'ready': coverageOk && mapeOk && shadowAgeOk && comparisonsOk && driftOk,
+    };
+  } catch (_) {
+    return {
+      'coverage_rate': null, 'rolling_mape': null, 'shadow_days': 0,
+      'comparisons_count': 0, 'has_high_drift': false,
+      'predictions_visible': false,
+      'coverage_ok': false, 'mape_ok': false, 'shadow_age_ok': false,
+      'comparisons_ok': false, 'drift_ok': false, 'ready': false,
+    };
+  }
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
 // AI Manual Controls — AiDashboardScreen (Phase 9I)
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -309,6 +410,26 @@ class AiControlsNotifier extends StateNotifier<AiControlsState> {
         aiRecentEventsProvider,
         aiPipelineHealthProvider,
       ]);
+
+  /// Triggers an on-demand backfill of predictions for auctions without any.
+  Future<bool> backfillPredictions({bool includeClosed = false}) =>
+      _run(
+        SupabaseConstants.fnBackfillAiPredictions,
+        {'include_closed': includeClosed},
+        [aiRecentEventsProvider, aiGraduationReadinessProvider],
+      );
+
+  /// Graduates shadow mode to live: sets predictions_visible_to_clients = true.
+  Future<bool> goLive() =>
+      _run(
+        SupabaseConstants.fnToggleAiFlag,
+        {'key': 'ai.predictions_visible_to_clients', 'value': 'true'},
+        [
+          aiDashboardOverviewProvider,
+          aiGraduationReadinessProvider,
+          aiPipelineHealthProvider,
+        ],
+      );
 
   void clearError() => state = const AiControlsState();
 
