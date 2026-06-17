@@ -133,6 +133,7 @@ class _NotifDetailSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cfg = _notifTypeConfig(notification.type);
     return Container(
       margin: const EdgeInsets.only(top: 64),
       decoration: const BoxDecoration(
@@ -164,15 +165,15 @@ class _NotifDetailSheet extends StatelessWidget {
                       decoration: BoxDecoration(
                         color: notification.isRead
                             ? AppColors.surfaceGrey
-                            : AppColors.primaryBlue.withValues(alpha: 0.12),
+                            : cfg.color.withValues(alpha: 0.12),
                         shape: BoxShape.circle,
                       ),
                       child: Icon(
-                        Icons.notifications_outlined,
+                        cfg.icon,
                         size: 22,
                         color: notification.isRead
                             ? AppColors.textSecondary
-                            : AppColors.primaryBlue,
+                            : cfg.color,
                       ),
                     ),
                     const SizedBox(width: 12),
@@ -203,8 +204,8 @@ class _NotifDetailSheet extends StatelessWidget {
                       Container(
                         width: 10,
                         height: 10,
-                        decoration: const BoxDecoration(
-                          color: AppColors.primaryBlue,
+                        decoration: BoxDecoration(
+                          color: cfg.color,
                           shape: BoxShape.circle,
                         ),
                       ),
@@ -244,6 +245,15 @@ class _NotifDetailSheet extends StatelessWidget {
   }
 }
 
+// Returns type-specific icon + accent colour for a notification type.
+// AI pipeline types get distinct visuals so super admins can triage at a glance.
+({IconData icon, Color color}) _notifTypeConfig(String type) => switch (type) {
+  'ai_drift'    => (icon: Icons.warning_amber_outlined, color: const Color(0xFFFF8F00)),
+  'ai_rollback' => (icon: Icons.history,                color: AppColors.primaryBlue),
+  'ai_retrain'  => (icon: Icons.science_outlined,       color: const Color(0xFF7B1FA2)),
+  _             => (icon: Icons.notifications_outlined,  color: AppColors.primaryBlue),
+};
+
 class _NotifTile extends StatelessWidget {
   const _NotifTile({required this.notif, required this.onTap});
   final NotificationModel notif;
@@ -252,6 +262,7 @@ class _NotifTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isRead = notif.isRead;
+    final cfg = _notifTypeConfig(notif.type);
     return InkWell(
       onTap: onTap,
       child: Container(
@@ -260,12 +271,12 @@ class _NotifTile extends StatelessWidget {
         decoration: BoxDecoration(
           color: isRead
               ? AppColors.surface
-              : AppColors.primaryBlue.withValues(alpha: 0.06),
+              : cfg.color.withValues(alpha: 0.06),
           borderRadius: BorderRadius.circular(AppRadius.md),
           border: Border.all(
             color: isRead
                 ? AppColors.border
-                : AppColors.primaryBlue.withValues(alpha: 0.25),
+                : cfg.color.withValues(alpha: 0.25),
           ),
         ),
         child: Row(
@@ -277,13 +288,13 @@ class _NotifTile extends StatelessWidget {
               decoration: BoxDecoration(
                 color: isRead
                     ? AppColors.surfaceGrey
-                    : AppColors.primaryBlue.withValues(alpha: 0.12),
+                    : cfg.color.withValues(alpha: 0.12),
                 shape: BoxShape.circle,
               ),
               child: Icon(
-                Icons.notifications_outlined,
+                cfg.icon,
                 size: 20,
-                color: isRead ? AppColors.textSecondary : AppColors.primaryBlue,
+                color: isRead ? AppColors.textSecondary : cfg.color,
               ),
             ),
             const SizedBox(width: 12),
@@ -324,8 +335,8 @@ class _NotifTile extends StatelessWidget {
                 width: 8,
                 height: 8,
                 margin: const EdgeInsets.only(top: 4, left: 8),
-                decoration: const BoxDecoration(
-                  color: AppColors.primaryBlue,
+                decoration: BoxDecoration(
+                  color: cfg.color,
                   shape: BoxShape.circle,
                 ),
               ),
