@@ -255,15 +255,15 @@ SELECT cron.schedule(
 SELECT jobid, jobname, schedule, active
 FROM cron.job
 ORDER BY jobname;
--- Expected 8 rows:
+-- Expected 8 rows (7 if weekly-retraining was skipped — see Step E note):
 --   cleanup-notifications          0 22 * * 0
 --   close-auctions                 */5 * * * *
 --   collect-ai-shadow-metrics      0 2 * * *
---   collect-candidate-metrics      0 3 * * *
+--   collect-candidate-metrics      0 3 * * *      ← Phase 9F
 --   compute-prediction-comparison  */10 * * * *
 --   generate-auction-price-estimate 0 * * * *
---   promote-candidate              30 3 * * *
---   weekly-retraining              0 3 * * 0
+--   promote-candidate              30 3 * * *     ← Phase 9F
+--   weekly-retraining              0 3 * * 0      ← Phase 9D (requires TRAINING_WORKER_URL)
 
 -- =============================================================================
 -- PHASE 4B ROLLBACK (remove Phase 4B jobs only):
