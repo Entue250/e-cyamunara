@@ -140,3 +140,48 @@ final clientBidsWithAuctionsProvider =
     }).toList();
   },
 );
+
+// ─────────────────────────────────────────────────────────────────────────────
+// AI bid insights — win probability + value signal per auction (Phase 9M)
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// Returns AI insights for one auction or null if:
+///   • `ai.predictions_visible_to_clients` flag is not 'true'
+///   • No predictions exist for this auction yet
+///
+/// Keyed on auctionId so Riverpod caches one result per tile.
+/// Only called for active auctions — won/lost tiles skip the watch entirely.
+final aiBidInsightsProvider =
+    FutureProvider.family<Map<String, dynamic>?, String>((ref, auctionId) async {
+  if (auctionId.isEmpty) return null;
+  final client = Supabase.instance.client;
+
+  final flagRow = await client
+      .from(SupabaseConstants.aiFeatureFlagsTable)
+      .select('value')
+      .eq('key', 'ai.predictions_visible_to_clients')
+      .maybeSingle();
+  if ((flagRow)?['value'] != 'true') return null;
+
+  final rows = await client
+      .from(SupabaseConstants.aiPredictionsTable)
+      .select('prediction_type, predicted_value')
+      .eq('auction_id', auctionId)
+      .eq('model_stage', 'shadow')
+      .inFilter('prediction_type',
+          ['auction_price_estimate', 'bid_probability']);
+
+  if (rows.isEmpty) return null;
+
+  double? priceEstimate;
+  double? winProbability;
+  for (final row in rows) {
+    final type = row['prediction_type'] as String?;
+    final val  = (row['predicted_value'] as num?)?.toDouble();
+    if (type == 'auction_price_estimate') priceEstimate = val;
+    if (type == 'bid_probability')        winProbability = val;
+  }
+
+  if (priceEstimate == null && winProbability == null) return null;
+  return {'price_estimate': priceEstimate, 'win_probability': winProbability};
+});
