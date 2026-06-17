@@ -126,6 +126,19 @@ serve(async (req) => {
       from: result.rolled_back_from, to: result.rolled_back_to, duration_ms: durationMs,
     }));
 
+    // Phase 9J: audit log — best-effort, silent on failure
+    // Requires 'model_rolled_back' event_type added in migration 20260617000003.
+    await supabase.from('ai_prediction_logs').insert({
+      event_type: 'model_rolled_back',
+      duration_ms: durationMs,
+      metadata: {
+        model_name,
+        rolled_back_from: result.rolled_back_from,
+        rolled_back_to:   result.rolled_back_to,
+        message:          result.message,
+      },
+    }).catch(() => {});
+
     return json(result);
 
   } catch (err) {
