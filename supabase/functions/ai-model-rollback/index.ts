@@ -139,6 +139,15 @@ serve(async (req) => {
       },
     }).catch(() => {});
 
+    // Phase 9Q — notify all active super admins of the rollback
+    await _notifySuperAdmins(
+      Deno.env.get('SUPABASE_URL')!,
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
+      '🔄 AI Model Rolled Back',
+      `${model_name} rolled back from v${result.rolled_back_from} to v${result.rolled_back_to}.`,
+      'ai_rollback',
+    );
+
     return json(result);
 
   } catch (err) {
@@ -148,6 +157,51 @@ serve(async (req) => {
 });
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
+
+// Phase 9Q — super-admin notification (in-app + optional OneSignal push)
+async function _notifySuperAdmins(
+  supabaseUrl: string,
+  serviceKey: string,
+  title: string,
+  body: string,
+  notifType: string,
+): Promise<void> {
+  try {
+    const sb = createClient(supabaseUrl, serviceKey);
+    const { data: supers } = await sb
+      .from('super_admins')
+      .select('id')
+      .eq('account_status', 'active');
+    if (!supers?.length) return;
+
+    await sb.from('notifications').insert(
+      (supers as any[]).map((s) => ({
+        user_uid: s.id, title, body, type: notifType, auction_id: null,
+      })),
+    ).catch(() => {});
+
+    try {
+      const { data: withIds } = await sb
+        .from('super_admins').select('onesignal_player_id')
+        .eq('account_status', 'active').not('onesignal_player_id', 'is', null);
+      const playerIds = (withIds ?? []).map((s: any) => s.onesignal_player_id).filter(Boolean);
+      if (playerIds.length > 0) {
+        const apiKey = Deno.env.get('ONESIGNAL_REST_API_KEY');
+        const appId  = Deno.env.get('ONESIGNAL_APP_ID');
+        if (apiKey && appId) {
+          await fetch('https://onesignal.com/api/v1/notifications', {
+            method: 'POST',
+            headers: { Authorization: `Basic ${apiKey}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              app_id: appId, include_player_ids: playerIds,
+              headings: { en: title }, contents: { en: body }, data: { type: notifType },
+            }),
+          }).catch(() => {});
+        }
+      }
+    } catch { /* onesignal_player_id absent — skip push */ }
+  } catch { /* never propagate */ }
+}
 
 async function getCallerRole(
   authHeader: string,
