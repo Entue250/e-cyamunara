@@ -53,6 +53,7 @@ class SupabaseConstants {
   static const String fnTriggerEarlyRetraining = 'trigger-early-retraining';
   static const String fnAiModelRollback        = 'ai-model-rollback';
   static const String fnResolveDrift           = 'resolve-model-drift';
+  static const String fnBackfillAiPredictions  = 'backfill-ai-predictions';
 
   // ── OneSignal (push notifications) ───────────────────────────────────────
   static String get oneSignalAppId => dotenv.env['ONESIGNAL_APP_ID'] ?? '';
