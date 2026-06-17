@@ -267,3 +267,69 @@ final searchAuctionsProvider =
       .map((r) => AuctionModel.fromMap(r as Map<String, dynamic>))
       .toList();
 });
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Bid confirmation AI nudge — signal + probability after bid is placed (Phase 9P)
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// Compares the AI auction_price_estimate against the user's actual bid amount
+/// (not starting_price — the bid has already passed the floor validation).
+///
+/// Signal:
+///   UNDER → estimate > bidAmount × 1.10  (market will pay more — good deal)
+///   OVER  → estimate < bidAmount × 0.90  (bid exceeds estimated market value)
+///   FAIR  → everything in between
+///
+/// Also returns win_probability (Model C) for the auction.
+/// Returns null when predictions are hidden, no data, or bidAmount <= 0.
+final bidConfirmationAiProvider = FutureProvider.family<
+    Map<String, dynamic>?,
+    ({String auctionId, double bidAmount})>((ref, args) async {
+  if (args.auctionId.isEmpty || args.bidAmount <= 0) return null;
+  final client = Supabase.instance.client;
+
+  final flagRow = await client
+      .from(SupabaseConstants.aiFeatureFlagsTable)
+      .select('value')
+      .eq('key', 'ai.predictions_visible_to_clients')
+      .maybeSingle();
+  if ((flagRow)?['value'] != 'true') return null;
+
+  final rows = await client
+      .from(SupabaseConstants.aiPredictionsTable)
+      .select('prediction_type, predicted_value')
+      .eq('auction_id', args.auctionId)
+      .eq('model_stage', 'shadow')
+      .inFilter('prediction_type',
+          ['auction_price_estimate', 'bid_probability']);
+
+  if ((rows as List).isEmpty) return null;
+
+  double? priceEstimate;
+  double? winProbability;
+  for (final row in rows) {
+    final type = row['prediction_type'] as String?;
+    final val  = (row['predicted_value'] as num?)?.toDouble();
+    if (type == 'auction_price_estimate') priceEstimate = val;
+    if (type == 'bid_probability')        winProbability = val;
+  }
+
+  if (priceEstimate == null && winProbability == null) return null;
+
+  String? signal;
+  if (priceEstimate != null) {
+    if (priceEstimate > args.bidAmount * 1.10) {
+      signal = 'UNDER';
+    } else if (priceEstimate < args.bidAmount * 0.90) {
+      signal = 'OVER';
+    } else {
+      signal = 'FAIR';
+    }
+  }
+
+  return {
+    'price_estimate': priceEstimate,
+    'win_probability': winProbability,
+    'signal': signal,
+  };
+});
