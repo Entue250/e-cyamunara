@@ -30,6 +30,7 @@ class AiDashboardScreen extends ConsumerWidget {
     ref.invalidate(aiRecentEventsProvider);
     ref.invalidate(aiPipelineHealthProvider);
     ref.invalidate(aiGraduationReadinessProvider);
+    ref.invalidate(aiMetricsHistoryProvider);
   }
 
   @override
@@ -40,6 +41,7 @@ class AiDashboardScreen extends ConsumerWidget {
     final eventsAsync       = ref.watch(aiRecentEventsProvider);
     final healthAsync       = ref.watch(aiPipelineHealthProvider);
     final graduationAsync   = ref.watch(aiGraduationReadinessProvider);
+    final metricsHistory    = ref.watch(aiMetricsHistoryProvider);
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -117,6 +119,16 @@ class AiDashboardScreen extends ConsumerWidget {
                 loading: () => const _SectionShimmer(),
                 error:   (_, _) => const SizedBox.shrink(),
                 data:    (d) => _QualityMetricsCard(data: d),
+              ),
+              const SizedBox(height: 16),
+
+              // ── 14-Day Metrics History (Phase 9L) ───────────────────────
+              metricsHistory.when(
+                loading: () => const _SectionShimmer(),
+                error:   (_, _) => const SizedBox.shrink(),
+                data:    (rows) => rows.isEmpty
+                    ? const SizedBox.shrink()
+                    : _MetricsHistoryCard(rows: rows),
               ),
               const SizedBox(height: 16),
 
@@ -1999,4 +2011,190 @@ class _ErrorCard extends StatelessWidget {
           ],
         ),
       );
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// 14-Day Metrics History card (Phase 9L)
+// ════════════════════════════════════════════════════════════════════════════
+
+class _MetricsHistoryCard extends StatelessWidget {
+  const _MetricsHistoryCard({required this.rows});
+  final List<Map<String, dynamic>> rows;
+
+  Color _mapeColor(double? mape) {
+    if (mape == null) return AppColors.textSecondary;
+    if (mape <= 15) return const Color(0xFF2E7D32);
+    if (mape <= 25) return const Color(0xFFF57F17);
+    return AppColors.error;
+  }
+
+  Color _coverageColor(double? rate) {
+    if (rate == null) return AppColors.textSecondary;
+    if (rate >= 0.80) return const Color(0xFF2E7D32);
+    if (rate >= 0.50) return const Color(0xFFF57F17);
+    return AppColors.error;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(AppRadius.lg),
+        border: Border.all(color: const Color(0xFFE0E0E0)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(14, 12, 14, 8),
+            child: Row(
+              children: const [
+                Icon(Icons.bar_chart_outlined,
+                    size: 16, color: AppColors.primaryBlue),
+                SizedBox(width: 6),
+                Text(
+                  '14-Day Metrics History',
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.primaryBlue,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const Divider(height: 1, thickness: 1, color: Color(0xFFEEEEEE)),
+          // Header row
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            child: Row(
+              children: const [
+                Expanded(
+                    flex: 3,
+                    child: Text('Date',
+                        style: TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.textSecondary))),
+                Expanded(
+                    flex: 2,
+                    child: Text('MAPE',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.textSecondary))),
+                Expanded(
+                    flex: 2,
+                    child: Text('Coverage',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.textSecondary))),
+                Expanded(
+                    flex: 2,
+                    child: Text('Preds',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.textSecondary))),
+                Expanded(
+                    flex: 2,
+                    child: Text('Errors',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.textSecondary))),
+              ],
+            ),
+          ),
+          const Divider(height: 1, thickness: 1, color: Color(0xFFEEEEEE)),
+          ...rows.asMap().entries.map((entry) {
+            final i   = entry.key;
+            final row = entry.value;
+            final mape     = (row['mape'] as num?)?.toDouble();
+            final coverage = (row['coverage_rate'] as num?)?.toDouble();
+            final preds    = row['predictions_generated'] as int? ?? 0;
+            final errors   = row['prediction_errors'] as int? ?? 0;
+            final dateStr  = (row['metric_date'] as String? ?? '').length >= 10
+                ? (row['metric_date'] as String).substring(5, 10)
+                : row['metric_date'] as String? ?? '—';
+
+            return Container(
+              color: i.isEven ? Colors.white : const Color(0xFFFAFAFA),
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              child: Row(
+                children: [
+                  Expanded(
+                    flex: 3,
+                    child: Text(
+                      dateStr,
+                      style: const TextStyle(
+                          fontSize: 11, color: AppColors.textPrimary),
+                    ),
+                  ),
+                  Expanded(
+                    flex: 2,
+                    child: Text(
+                      mape != null ? '${mape.toStringAsFixed(1)}%' : '—',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                        color: _mapeColor(mape),
+                      ),
+                    ),
+                  ),
+                  Expanded(
+                    flex: 2,
+                    child: Text(
+                      coverage != null
+                          ? '${(coverage * 100).toStringAsFixed(0)}%'
+                          : '—',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                        color: _coverageColor(coverage),
+                      ),
+                    ),
+                  ),
+                  Expanded(
+                    flex: 2,
+                    child: Text(
+                      '$preds',
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                          fontSize: 11, color: AppColors.textPrimary),
+                    ),
+                  ),
+                  Expanded(
+                    flex: 2,
+                    child: Text(
+                      '$errors',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight:
+                            errors > 0 ? FontWeight.w600 : FontWeight.normal,
+                        color: errors > 0
+                            ? AppColors.error
+                            : AppColors.textSecondary,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          }),
+          const SizedBox(height: 6),
+        ],
+      ),
+    );
+  }
 }
