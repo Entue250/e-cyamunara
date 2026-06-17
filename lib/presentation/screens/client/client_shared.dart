@@ -33,7 +33,7 @@ class ClientBottomNav extends StatelessWidget {
             case 0:
               context.go(AppRoutes.home);
             case 1:
-              context.go(AppRoutes.feedbackGeneral);
+              context.go(AppRoutes.search);
             case 2:
               context.go(AppRoutes.myBids);
             case 3:
@@ -46,8 +46,8 @@ class ClientBottomNav extends StatelessWidget {
             label: context.l10n.home,
           ),
           BottomNavigationBarItem(
-            icon: const Icon(Icons.rate_review_outlined),
-            label: context.l10n.feedbackNav,
+            icon: const Icon(Icons.search_outlined),
+            label: context.l10n.search,
           ),
           BottomNavigationBarItem(
             icon: const Icon(Icons.gavel_outlined),
