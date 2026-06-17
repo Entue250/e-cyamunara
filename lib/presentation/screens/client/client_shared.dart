@@ -15,7 +15,7 @@ import '../../../core/localization/app_localizations_ext.dart';
 import '../../../data/models/models.dart';
 import '../../../core/utils/formatters.dart';
 import '../../../core/utils/date_notification_helpers.dart';
-import 'client_providers.dart' show aiBidInsightsProvider;
+import 'client_providers.dart' show aiBidInsightsProvider, aiAuctionBadgeProvider;
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Bottom navigation — 4 fixed tabs (Home, Search, My Bids, Profile)
@@ -70,7 +70,7 @@ class ClientBottomNav extends StatelessWidget {
 // Auction card — used on Home screen and anywhere an auction is listed
 // ─────────────────────────────────────────────────────────────────────────────
 
-class AuctionCard extends StatelessWidget {
+class AuctionCard extends ConsumerWidget {
   const AuctionCard({
     super.key,
     required this.auction,
@@ -80,9 +80,16 @@ class AuctionCard extends StatelessWidget {
   final VoidCallback onBidTap;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final isEndingSoon =
         auction.endDate.difference(DateTime.now()).inHours < 24;
+
+    // AI value badge — silent when flag is off or no prediction yet
+    final aiBadge = ref
+        .watch(aiAuctionBadgeProvider(
+          (auctionId: auction.auctionId, startingPrice: auction.startingPrice),
+        ))
+        .valueOrNull;
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
@@ -114,6 +121,13 @@ class AuctionCard extends StatelessWidget {
                         )
                       : AuctionPhotoPlaceholder(auction.resolvedMainCategory),
                 ),
+                // AI value signal badge — top-left, only when visible
+                if (aiBadge != null)
+                  Positioned(
+                    top: 12,
+                    left: 12,
+                    child: _AiValueBadge(aiBadge),
+                  ),
                 // Category badge
                 Positioned(
                   top: 12,
@@ -553,6 +567,41 @@ class _BidAiSignalPill extends StatelessWidget {
           fontWeight: FontWeight.w800,
           color: color,
           letterSpacing: 0.5,
+        ),
+      ),
+    );
+  }
+}
+
+// AI value badge for home-screen auction photo (Phase 9N)
+class _AiValueBadge extends StatelessWidget {
+  const _AiValueBadge(this.signal);
+  final String signal;
+
+  @override
+  Widget build(BuildContext context) {
+    final (label, color, bg) = switch (signal) {
+      'UNDER' => ('AI: UNDER', const Color(0xFF2E7D32), const Color(0xCC1B5E20)),
+      'OVER'  => ('AI: OVER',  AppColors.error,          const Color(0xCCB71C1C)),
+      _       => ('AI: FAIR',  const Color(0xFF9E6D00),  const Color(0xCC7A5000)),
+    };
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(AppRadius.full),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          fontSize: 9,
+          fontWeight: FontWeight.w900,
+          color: color == const Color(0xFF2E7D32)
+              ? const Color(0xFFB9F6CA)
+              : color == AppColors.error
+                  ? const Color(0xFFFFCDD2)
+                  : const Color(0xFFFFECB3),
+          letterSpacing: 0.6,
         ),
       ),
     );
