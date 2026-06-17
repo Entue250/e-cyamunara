@@ -229,3 +229,41 @@ final aiAuctionBadgeProvider =
   if (estimate < floor * 0.95) return 'OVER';
   return 'FAIR';
 });
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Auction search with filters (Phase 9O)
+// ─────────────────────────────────────────────────────────────────────────────
+
+typedef AuctionSearchQuery = ({
+  String text,
+  String? region,
+  String? category,
+  bool activeOnly,
+  double? minPrice,
+  double? maxPrice,
+});
+
+final searchAuctionsProvider =
+    FutureProvider.family<List<AuctionModel>, AuctionSearchQuery>(
+        (ref, q) async {
+  final client = Supabase.instance.client;
+
+  // Filters must be applied before order/limit (PostgREST builder type chain)
+  var query = client
+      .from(SupabaseConstants.auctionsTable)
+      .select();
+
+  if (q.text.isNotEmpty) {
+    query = query.ilike('item_name', '%${q.text}%');
+  }
+  if (q.region != null)   query = query.eq('region', q.region!);
+  if (q.category != null) query = query.eq('main_category', q.category!);
+  if (q.activeOnly)       query = query.eq('auction_status', 'active');
+  if (q.minPrice != null) query = query.gte('starting_price', q.minPrice!);
+  if (q.maxPrice != null) query = query.lte('starting_price', q.maxPrice!);
+
+  final rows = await query.order('created_at', ascending: false).limit(60);
+  return (rows as List)
+      .map((r) => AuctionModel.fromMap(r as Map<String, dynamic>))
+      .toList();
+});
