@@ -18,6 +18,7 @@ import '../../theme/app_theme.dart';
 import '../../../core/localization/app_localizations_ext.dart';
 import '../../../core/utils/formatters.dart';
 import '../../app_router.dart';
+import 'client_providers.dart' show bidConfirmationAiProvider;
 
 class BidConfirmationScreen extends ConsumerWidget {
   const BidConfirmationScreen({super.key, this.auction});
@@ -250,7 +251,22 @@ class BidConfirmationScreen extends ConsumerWidget {
               ),
             ),
 
-            const SizedBox(height: 28),
+            const SizedBox(height: 20),
+
+            // ── AI nudge card (Phase 9P) ─────────────────────────────────────
+            if (auction != null && newBid > 0)
+              ref
+                  .watch(bidConfirmationAiProvider(
+                    (auctionId: auction!.auctionId, bidAmount: newBid),
+                  ))
+                  .whenOrNull(
+                    data: (ai) => ai == null
+                        ? const SizedBox.shrink()
+                        : _AiBidNudgeCard(ai: ai, bidAmount: newBid),
+                  ) ??
+              const SizedBox.shrink(),
+
+            const SizedBox(height: 20),
 
             SizedBox(
               width: double.infinity,
@@ -281,4 +297,191 @@ class BidConfirmationScreen extends ConsumerWidget {
       ),
     );
   }
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// AI Bid Nudge Card (Phase 9P)
+// ════════════════════════════════════════════════════════════════════════════
+
+class _AiBidNudgeCard extends StatelessWidget {
+  const _AiBidNudgeCard({required this.ai, required this.bidAmount});
+  final Map<String, dynamic> ai;
+  final double bidAmount;
+
+  static const _kUnder = 'UNDER';
+  static const _kOver  = 'OVER';
+
+  ({Color accent, Color bg, IconData icon, String headline, String body})
+      _theme(String? signal, double? prob) {
+    final highProb = (prob ?? 0) >= 0.60;
+    return switch (signal) {
+      _kUnder when highProb => (
+          accent: const Color(0xFF2E7D32),
+          bg:     const Color(0xFFE8F5E9),
+          icon:   Icons.trending_up,
+          headline: 'Strong position',
+          body: 'Your bid is below the estimated market value — good deal and a solid chance to win.',
+        ),
+      _kUnder => (
+          accent: const Color(0xFF2E7D32),
+          bg:     const Color(0xFFE8F5E9),
+          icon:   Icons.trending_up,
+          headline: 'Good value',
+          body: 'Market value is above your bid. Consider raising your bid to strengthen your position.',
+        ),
+      _kOver when highProb => (
+          accent: AppColors.warning,
+          bg:     const Color(0xFFFFF8E1),
+          icon:   Icons.info_outline,
+          headline: 'Leading — watch your price',
+          body: 'You\'re currently winning, but your bid exceeds the estimated market value.',
+        ),
+      _kOver => (
+          accent: AppColors.error,
+          bg:     const Color(0xFFFFEBEE),
+          icon:   Icons.warning_amber_outlined,
+          headline: 'Above market value',
+          body: 'Your bid is higher than the AI-estimated market value. You may be overbidding.',
+        ),
+      _ when highProb => (
+          accent: AppColors.primaryBlue,
+          bg:     const Color(0xFFE3F2FD),
+          icon:   Icons.check_circle_outline,
+          headline: 'Competitive bid',
+          body: 'Your bid aligns with the estimated market value and you have a strong chance to win.',
+        ),
+      _ => (
+          accent: AppColors.primaryBlue,
+          bg:     const Color(0xFFE3F2FD),
+          icon:   Icons.analytics_outlined,
+          headline: 'In range',
+          body: 'Your bid is within the estimated market value range.',
+        ),
+    };
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final signal   = ai['signal'] as String?;
+    final estimate = (ai['price_estimate'] as double?);
+    final prob     = (ai['win_probability'] as double?);
+    final t        = _theme(signal, prob);
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: t.bg,
+        borderRadius: BorderRadius.circular(AppRadius.lg),
+        border: Border.all(color: t.accent.withValues(alpha: 0.35)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Header row
+          Row(
+            children: [
+              Icon(t.icon, size: 18, color: t.accent),
+              const SizedBox(width: 8),
+              Text(
+                t.headline,
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w800,
+                  color: t.accent,
+                ),
+              ),
+              const Spacer(),
+              // Signal pill
+              if (signal != null)
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 8, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: t.accent,
+                    borderRadius: BorderRadius.circular(AppRadius.full),
+                  ),
+                  child: Text(
+                    signal,
+                    style: const TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w900,
+                      color: Colors.white,
+                      letterSpacing: 0.5,
+                    ),
+                  ),
+                ),
+            ],
+          ),
+          const SizedBox(height: 8),
+
+          // Body text
+          Text(
+            t.body,
+            style: TextStyle(
+              fontSize: 12,
+              color: t.accent.withValues(alpha: 0.85),
+              height: 1.4,
+            ),
+          ),
+          const SizedBox(height: 12),
+
+          // Data row
+          Row(
+            children: [
+              if (estimate != null) ...[
+                _NudgeStat(
+                  label: 'Est. market value',
+                  value: AppFormatters.rwf(estimate),
+                  color: t.accent,
+                ),
+                const SizedBox(width: 16),
+              ],
+              if (prob != null)
+                _NudgeStat(
+                  label: 'Win probability',
+                  value: '${(prob * 100).toStringAsFixed(0)}%',
+                  color: t.accent,
+                ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _NudgeStat extends StatelessWidget {
+  const _NudgeStat({
+    required this.label,
+    required this.value,
+    required this.color,
+  });
+  final String label, value;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) => Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label.toUpperCase(),
+            style: TextStyle(
+              fontSize: 9,
+              fontWeight: FontWeight.w700,
+              color: color.withValues(alpha: 0.7),
+              letterSpacing: 0.5,
+            ),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w900,
+              color: color,
+            ),
+          ),
+        ],
+      );
 }
